@@ -67,6 +67,12 @@
     {% block head_js %}
       {% include "head_custom_extra.html" %}
     {% endblock %}
+
+    <style>
+      {% block custom_css %}
+      {% endblock %}
+   
+    </style> 
   </head>
 
   <body {% if standalone_mode %}class="standalone"{% endif %}>

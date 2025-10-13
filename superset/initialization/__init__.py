@@ -202,6 +202,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             Dashboard,
             DashboardModelView,
         )
+        # __________Add custom formview__________________
+
+        from superset.custom_form import ReportUploadView
+        #__________________________________________________
+
         from superset.views.database.views import DatabaseView
         from superset.views.datasource.views import DatasetEditor, Datasource
         from superset.views.dynamic_plugins import DynamicPluginsView
@@ -292,6 +297,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             href="/superset/welcome/",
             cond=lambda: bool(current_app.config["LOGO_TARGET_PATH"]),
         )
+
+        # __________Register custom formview__________________
+        appbuilder.add_view(
+            ReportUploadView,
+            "Report Upload",
+            label=_("Report Upload"),
+            icon="fa-upload",
+            category="Manage",
+            category_label=_("Manage"),
+        )
+        #_____________________________________________________
 
         appbuilder.add_view(
             DatabaseView,

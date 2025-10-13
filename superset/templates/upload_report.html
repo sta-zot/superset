@@ -1,0 +1,93 @@
+{% extends "superset/spa.html" %}
+{% import 'appbuilder/general/lib.html' as lib  %}
+{% block title %}Загрузка отчёта{% endblock %}
+  {% block custom_css %}
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+    select, input[type="file"] {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .btn {
+      background-color: #007bff;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .btn:hover {
+      background-color: #0056b3;
+    }
+  {% endblock %}
+
+{% block content %}
+
+  <h2>Загрузка отчёта по программе повышения финансовой грамотности</h2>
+  <div class="container">
+    <form  method="post" enctype="multipart/form-data">
+      {{ form.hidden_tag() }}
+
+      <div class="form-group">
+        {{ lib.render_field(form.region) }}
+        
+      </div>
+
+      <div class="form-group">
+        <label for="locality">Населённый пункт</label>
+        <select id="locality" name="locality" required>
+          <option value="">— Выберите населённый пункт —</option>
+          <option value="1">Москва</option>
+          <option value="2">Зеленоград</option>
+          <option value="3">Троицк</option>
+          <!-- Зависит от выбранного региона -->
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Тип отчёта (направление деятельности)</label>
+        <div>
+          <input type="radio" id="dir1" name="report_type" value="adult_education" required>
+          <label for="dir1" style="display:inline; font-weight:normal;">Просвещение работающих граждан и пенсионеров</label>
+        </div>
+        <div>
+          <input type="radio" id="dir2" name="report_type" value="school_integration" required>
+          <label for="dir2" style="display:inline; font-weight:normal;">Внедрение ПФГ в образовательные программы</label>
+        </div>
+        <div>
+          <input type="radio" id="dir3" name="report_type" value="info_materials" required>
+          <label for="dir3" style="display:inline; font-weight:normal;">Размещение информационных материалов (офлайн и онлайн)</label>
+        </div>
+        <div>
+          <input type="radio" id="dir4" name="report_type" value="staff_training" required>
+          <label for="dir4" style="display:inline; font-weight:normal;">Подготовка кадров и обучение волонтёров</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="report_file">Файл отчёта (.xlsx, .xls, .ods)</label>
+        <input type="file" id="report_file" name="report_file" accept=".xlsx,.xls,.ods" required>
+      </div>
+
+      <button type="submit" class="btn">Отправить отчёт</button>
+
+    </form>
+  </div>
+</body>
+</html>
