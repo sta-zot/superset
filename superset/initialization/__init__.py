@@ -299,14 +299,24 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
 
         # __________Register custom formview__________________
-        appbuilder.add_view(
-            ReportUploadView,
+        appbuilder.add_view_no_menu(ReportUploadView)
+        appbuilder.add_link(
             "Report Upload",
             label=_("Report Upload"),
+            href=f"{app_root}/report_upload/",
             icon="fa-upload",
             category="Manage",
             category_label=_("Manage"),
         )
+
+        # appbuilder.add_view(
+        #     ReportUploadView,
+        #     "Report Upload",
+        #     label=_("Report Upload"),
+        #     icon="fa-upload",
+        #     category="Manage",
+        #     category_label=_("Manage"),
+        # )
         #_____________________________________________________
 
         appbuilder.add_view(
