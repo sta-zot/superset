@@ -6,4 +6,4 @@
 
 from .model import LocalesModel
 from .forms import ReportUploadForm
-from .wiew import ReportUploadView
+from .view import ReportUploadView
