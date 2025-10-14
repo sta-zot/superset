@@ -300,6 +300,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         # __________Register custom formview__________________
         appbuilder.add_view_no_menu(ReportUploadView)
+        logger.debug("Registering custom form view")
         appbuilder.add_link(
             "Report Upload",
             label=_("Report Upload"),
