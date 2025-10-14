@@ -4,7 +4,7 @@
 """
 import logging
 
-logging.info("Custom form module initialized")
+logging.warning("Custom form module initialized")
 
 from .model import LocalesModel
 from .forms import ReportUploadForm

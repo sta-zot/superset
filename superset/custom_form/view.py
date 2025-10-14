@@ -6,7 +6,7 @@ from .forms import ReportUploadForm
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-logger.info("Custom view module loaded")
+logger.error("Custom view module loaded")
 
 class ReportUploadView(SimpleFormView):
     form = ReportUploadForm
