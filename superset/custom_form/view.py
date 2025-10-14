@@ -30,7 +30,7 @@ class ReportUploadView(SimpleFormView):
     #     return self.render_template(self.template, form=form)
 
     def form_get(self, form: ReportUploadForm) -> None:
-        pass
+        form.actyvity_field.data = '1'
 
     def form_post(self, form: ReportUploadForm) -> FlaskResponse:
         # Логика обработки загруженного файла и других данных формы
