@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_appbuilder import SimpleFormView, expose
+from superset.superset_typing import FlaskResponse
 
 from .forms import ReportUploadForm
 
