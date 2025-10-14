@@ -297,29 +297,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             href="/superset/welcome/",
             cond=lambda: bool(current_app.config["LOGO_TARGET_PATH"]),
         )
-
-        # __________Register custom formview__________________
-        appbuilder.add_view_no_menu(ReportUploadView)
-        logger.debug("Registering custom form view")
-        appbuilder.add_link(
-            "Report Upload",
-            label=_("Report Upload"),
-            href=f"{app_root}/report_upload/",
-            icon="fa-upload",
-            category="Manage",
-            category_label=_("Manage"),
-        )
-
-        # appbuilder.add_view(
-        #     ReportUploadView,
-        #     "Report Upload",
-        #     label=_("Report Upload"),
-        #     icon="fa-upload",
-        #     category="Manage",
-        #     category_label=_("Manage"),
-        # )
-        #_____________________________________________________
-
+        
         appbuilder.add_view(
             DatabaseView,
             "Databases",
@@ -460,7 +438,18 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(ReportView)
         appbuilder.add_view_no_menu(RoleRestAPI)
         appbuilder.add_view_no_menu(UserInfoView)
-
+        # __________Register custom formview__________________
+        appbuilder.add_view_no_menu(ReportUploadView)
+        logger.error("Registering custom form view")
+        appbuilder.add_link(
+            "Report Upload",
+            label=_("Report Upload"),
+            href=f"{app_root}/report_upload/",
+            icon="fa-upload",
+            category="SQL Lab",
+            category_label=_("SQL"),
+        )
+        #_____________________________________________________
         #
         # Add links
         #
