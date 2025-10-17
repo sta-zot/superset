@@ -13,7 +13,7 @@ class ReportUploadView(SimpleFormView):
     form_title = "Загрузка отчета по программе повышения финансовой грамотности населения"
     message = "Отчет успешно загружен!"
     message_category = "success"
-    route_base = "/report_upload"
+    route_base = "/upload_report"
     # @expose("/", methods=["GET", "POST"])
     # def upload_report(self):
     #     if request.method == "POST":
