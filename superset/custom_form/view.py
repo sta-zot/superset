@@ -14,6 +14,8 @@ class ReportUploadView(SimpleFormView):
     message = "Отчет успешно загружен!"
     message_category = "success"
     route_base = "/upload_report"
+
+    logger.error(f"ReportUploadView class defined. Route base: {route_base}")
     # @expose("/", methods=["GET", "POST"])
     # def upload_report(self):
     #     if request.method == "POST":
