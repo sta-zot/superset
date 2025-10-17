@@ -48,8 +48,9 @@ class LocalesModel():
 
 if __name__ == "__main__":
     test_df  = LocalesModel()
-    print(test_df.get_regions())
-    print(test_df.get_municipalities(""))
-    print(test_df.get_settlements("Касимовский район"))
+    regions = test_df.get_regions()
+    regions_index = [i for i in range(len(regions))]
+    for region in regions:
+        print(f"Region: {region}\t ID: {regions.index(region)}")  
 
 

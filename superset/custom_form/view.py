@@ -23,7 +23,7 @@ class ReportUploadView(SupersetBaseView):
     @expose("/", methods=["GET", "POST"])
     def form_view(self) -> FlaskResponse:
         locations = LocalesModel.get_regions()
-        self.form.region_field.choices = [(loc['id'], loc['name']) for loc in locations]
+        self.form.region_field.choices = [(locations.index(location), location) for location in locations]
         
 
 
