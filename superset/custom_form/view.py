@@ -1,21 +1,33 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_appbuilder import SimpleFormView, expose
 from superset.superset_typing import FlaskResponse
+from superset.views.base import SupersetBaseView
 
 from .forms import ReportUploadForm
+from .model import LocalesModel
 import logging
+
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 logger.error("Custom view module loaded")
 
-class ReportUploadView(SimpleFormView):
+class ReportUploadView(SupersetBaseView):
     form = ReportUploadForm
     form_title = "Загрузка отчета по программе повышения финансовой грамотности населения"
     message = "Отчет успешно загружен!"
     message_category = "success"
     route_base = "/upload_report"
-    logger.error(f"ReportUploadView class defined. Route base: {route_base}")
-   
+    
+    logger.info(f"ReportUploadView class defined. Route base: {route_base}")
+    @expose("/", methods=["GET", "POST"])
+    def form_view(self) -> FlaskResponse:
+        locations = LocalesModel.get_regions()
+        self.form.region_field.choices = [(loc['id'], loc['name']) for loc in locations]
+        
+
+
+
     # def form_get(self, form: ReportUploadForm) -> None:
     #     form.actyvity_field.data = '1'
 
