@@ -1,9 +1,10 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from wtforms import Form, StringField, SelectField, validators, FileField, RadioField
 from .model import LocalesModel
+from flask_appbuilder.forms import DynamicForm
 
 
-class ReportUploadForm(Form):
+class ReportUploadForm(DynamicForm):
 
     form_title = "Загрузка отчета по программе повышения финансовой грамотности населения"
     report = FileField('Выберите файл отчета', [validators.DataRequired()])
