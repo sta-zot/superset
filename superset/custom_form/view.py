@@ -22,6 +22,7 @@ class ReportUploadView(BaseSupersetView):
             ]
     message = "Отчет успешно загружен!"
     message_category = "success"
+    default_view = "form_view"
     route_base = "/upload_report"
     logger.info(f"ReportUploadView class defined. Route base: {route_base}")
 
