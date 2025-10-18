@@ -6,8 +6,8 @@
   <h2> {{form.title}} </h2>
   <br>
   
-<form id="form" method="post" enctype="multipart/form-data">
-      {{ form.hidden_tag() }}
+<form id="uploadForm" method="post" enctype="multipart/form-data">
+      {{ form.hidden_tag()}}
       <br>
       {{lib.render_field(form.report_field)}}
       <br>
