@@ -30,9 +30,10 @@ class ReportUploadView(BaseSupersetView):
     def form_view(self) -> FlaskResponse:
         if not self.form:
             self.form = ReportUploadForm()
-        locations = LocationsModel.get_regions()
+        locations = LocationsModel
         self.form.region_field.choices = [
-            (locations.index(location), location) for location in locations
+            (locations.index(location), location)
+            for location in locations.get_regions()
         ]
         self.form.activity_field.choices = self.choices
         return self.render_template("upload_report.html")
