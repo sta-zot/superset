@@ -6,6 +6,6 @@ import logging
 
 logging.warning("Custom form module initialized")
 
-from .model import LocalesModel
+from .model import LocationsModel
 from .forms import ReportUploadForm
 from .view import ReportUploadView
