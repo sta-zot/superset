@@ -13,19 +13,28 @@ logger.setLevel(logging.DEBUG)
 logger.error("Custom view module loaded")
 
 class ReportUploadView(SupersetBaseView):
-    form = ReportUploadForm
-    form_title = "Загрузка отчета по программе повышения финансовой грамотности населения"
+    form = None
+    choices = [
+            ('1', 'Мероприятия по ПФГ для экономически активного населения и пенсионеров'),
+            ('2', 'Внедрение ПФГ в образовательный процесс'),
+            ('3', 'Размещение информационных материалов по ПФГ'),
+            ('4', 'Подготовка кадров в области ПФГ'),
+            ]
     message = "Отчет успешно загружен!"
     message_category = "success"
     route_base = "/upload_report"
-    
     logger.info(f"ReportUploadView class defined. Route base: {route_base}")
+
     @expose("/", methods=["GET", "POST"])
     def form_view(self) -> FlaskResponse:
+        if not self.form:
+            self.form = ReportUploadForm()
         locations = LocalesModel.get_regions()
-        self.form.region_field.choices = [(locations.index(location), location) for location in locations]
-        
-
+        self.form.region_field.choices = [
+            (locations.index(location), location) for location in locations
+        ]
+        self.form.activity_field.choices = self.choices
+        return self.render_template("upload_report.html")
 
 
     # def form_get(self, form: ReportUploadForm) -> None:

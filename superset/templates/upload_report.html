@@ -1,28 +1,20 @@
 {% extends "superset/spa.html" %}
 {% import 'appbuilder/general/lib.html' as lib  %}
-{% block title %}Загрузка отчёта{% endblock %}
+{% block title %} {{form.title}} {% endblock %}
  
 {% block content %}
-
-  <h2>{{title}}</h2>
-  <div class="container">
-    <form  method="post" enctype="multipart/form-data">
+  <h2> {{form.title}} </h2>
+  <br>
+  
+<form id="form" method="post" enctype="multipart/form-data">
       {{ form.hidden_tag() }}
-
-      <div class="form-group">
-        {{ lib.render_field(form.region) }}
-        
-      </div>
-
-      <div class="form-group">
-        {{ lib.render_field(form.locale) }}      
-      </div>
-
-      <div class="form-group">
-        {{ lib.render_field(form.report) }}
-        
-      </div>
-
+      <br>
+      {{lib.render_field(form.report_field)}}
+      <br>
+      {{lib.render_field(form.region_field)}}
+      <br>
+      {{lib.render_field(form.activity_field)}}
+      <br>
       <button type="submit" class="btn">Отправить отчёт</button>
 
     </form>
