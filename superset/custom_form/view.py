@@ -4,7 +4,7 @@ from superset.superset_typing import FlaskResponse
 from superset.views.base import BaseSupersetView
 
 from .forms import ReportUploadForm
-from .model import LocalesModel
+from .model import LocationsModel
 import logging
 
 
@@ -30,7 +30,7 @@ class ReportUploadView(BaseSupersetView):
     def form_view(self) -> FlaskResponse:
         if not self.form:
             self.form = ReportUploadForm()
-        locations = LocalesModel.get_regions()
+        locations = LocationsModel.get_regions()
         self.form.region_field.choices = [
             (locations.index(location), location) for location in locations
         ]

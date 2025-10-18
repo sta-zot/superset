@@ -1,15 +1,13 @@
 """
 В этом модуле определяются модели для работы с базами данных для пользовательских форм.
 """
-
-
-import json
+#import json
 import logging
 
 import pandas as pd
 
 
-class LocalesModel():
+class LocationsModel():
 
     def __init__(self, locale: str = "en"):
         self.locale = locale
@@ -18,7 +16,6 @@ class LocalesModel():
     def __load_locales(self):
         try:
             locales = pd.read_csv("https://raw.githubusercontent.com/sta-zot/SRW/refs/heads/main/data/locations.csv")
-            
         except Exception as e:
             logging.error(f"Error loading locales: {e}")
             locales = pd.DataFrame({
@@ -30,20 +27,19 @@ class LocalesModel():
 
     def get_regions(self):
         return self.locales["region"].unique().tolist()
-    
+
     def get_municipalities(self, region: str):
         return self.locales[self.locales["region"] == region]["municipality"].unique().tolist()
-    
+
     def get_settlements(self, municipality: str):
         if municipality == "":
             return (self.locales["type"] + '. ' + self.locales["settlement"]).tolist()
         filtered_df = self.locales[self.locales["municipality"] == municipality]
-        #print(filtered_df.count())
+        # print(filtered_df.count())
         return (filtered_df["type"] + '. ' + filtered_df["settlement"]).unique().tolist()
-    
+
     def get_df(self)-> pd.DataFrame:
         return self.locales
-    
 
 
 if __name__ == "__main__":
