@@ -3,18 +3,18 @@
 {% block title %} {{form.title}} {% endblock %}
  
 {% block content %}
-  <h2> {{form.title}} </h2>
+  <h2> Загрузка отчета по программе повышения финансовой грамотности населения </h2>
   <br>
-  
+
 <form id="uploadForm" method="post" enctype="multipart/form-data">
-      {{ form.hidden_tag()}}
+      {% comment %} {{ form.hidden_tag()}}
       <br>
       {{lib.render_field(form.report_field)}}
       <br>
       {{lib.render_field(form.region_field)}}
       <br>
       {{lib.render_field(form.activity_field)}}
-      <br>
+      <br> {% endcomment %}
       <button type="submit" class="btn">Отправить отчёт</button>
 
     </form>
