@@ -31,9 +31,10 @@ class ReportUploadView(BaseSupersetView):
         if not self.form:
             self.form = ReportUploadForm()
         locations = LocationsModel()
+        locations = locations.get_regions()
         self.form.region_field.choices = [
             (locations.index(location), location)
-            for location in locations.get_regions()
+            for location in locations
         ]
         self.form.activity_field.choices = self.choices
         return self.render_template("upload_report.html")
