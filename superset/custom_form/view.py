@@ -37,7 +37,7 @@ class ReportUploadView(BaseSupersetView):
             for location in locations
         ]
         self.form.activity_field.choices = self.choices
-        return self.render_template("upload_report.html")
+        return self.render_template("upload_report.html", form=self.form)
 
 
     # def form_get(self, form: ReportUploadForm) -> None:
