@@ -406,26 +406,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_icon="",
         )
 
-        # __________Register custom formview__________________
-        appbuilder.add_view(
-            ReportUploadView,
-            "Report Upload",
-            label=_("Report Upload"),
-            category="Report_mgmt",
-            category_label=_("Report management"),
-            icon="fa-upload",
-            )
-        # appbuilder.add_view_no_menu(ReportUploadView)
-        # logger.error("Registering custom form view")
-        # appbuilder.add_link(
-        #     "Report Upload",
-        #     label=_("Report Upload"),
-        #     href=f"{app_root}/upload_report/",
-        #     icon="fa-upload",
-        #     category="SQL Lab",
-        #     category_label=_("SQL"),
-        # )
-        #_____________________________________________________
+        
 
         appbuilder.add_view(
             ExtensionsView,
@@ -441,6 +422,29 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #
         # Setup views with no menu
         #
+        # __________Register custom formview__________________
+        # appbuilder.add_view(
+        #     ReportUploadView,
+        #     "Report Upload",
+        #     label=_("Report Upload"),
+        #     category="Report_mgmt",
+        #     category_label=_("Report management"),
+        #     icon="fa-upload",
+        #     )
+        # 
+        # logger.error("Registering custom form view")
+       
+        appbuilder.add_view_no_menu(ReportUploadView)
+        appbuilder.add_link(
+            "Report Upload",
+            label=_("Report Upload"),
+            href=f"{app_root}/upload_report/",
+            icon="fa-upload",
+            category="SQL Lab",
+            category_label=_("SQL"),
+            category_icon="fa-newspaper-o"
+        )
+        #_____________________________________________________
         appbuilder.add_view_no_menu(Api)
         appbuilder.add_view_no_menu(Dashboard)
         appbuilder.add_view_no_menu(Datasource)
