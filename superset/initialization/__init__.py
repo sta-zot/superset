@@ -436,13 +436,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
        
         appbuilder.add_view_no_menu(ReportUploadView)
         appbuilder.add_link(
-            "Report Upload",
-            label=_("Report Upload"),
+            "Upload report",
+            label=_("Upload report"),
             href=f"{app_root}/upload_report/",
-            icon="fa-upload",
-            category="SQL Lab",
-            category_label=_("SQL"),
-            category_icon="fa-newspaper-o"
+            icon="fa-newspaper-o",
+            category="report_mgmt",
+            category_label=_("Reports managements"),
+            
         )
         #_____________________________________________________
         appbuilder.add_view_no_menu(Api)
