@@ -17,4 +17,3 @@ class ReportUploadForm(DynamicForm):
     activity_field = RadioField('Направление деятельности',
                                 choices=[],
                                 default='1')
-
