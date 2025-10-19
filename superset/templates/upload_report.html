@@ -1,11 +1,11 @@
-{% extends "superset/spa.html" %}
+{% extends "appbuilder/base.html" %}
 {% import 'appbuilder/general/lib.html' as lib  %}
-{% block title %} Загрузка отчета {% endblock %}
+{% block title %} {{form.title}} {% endblock %}
  
 {% block content %}
-  <h2> Загрузка отчета по программе повышения финансовой грамотности населения </h2>
+  <h2> {{form.title}} </h2>
   <br>
-<!--
+
 <form id="uploadForm" method="post" enctype="multipart/form-data">
       
       {{ form.hidden_tag()}}
@@ -19,6 +19,5 @@
       <button type="submit" class="btn">Отправить отчёт</button>
 
     </form>
--->
 {% endblock %}
 
