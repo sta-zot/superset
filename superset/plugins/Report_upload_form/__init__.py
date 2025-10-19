@@ -1,0 +1,11 @@
+"""
+В этом файле можно определить пользовательские формы для Superset.
+Формы предназначены для загрузки отчетов в объектное хранилище.
+"""
+import logging
+
+logging.warning("Custom form module initialized")
+
+from .model import LocationsModel
+from .forms import ReportUploadForm
+from .view import ReportUploadView
