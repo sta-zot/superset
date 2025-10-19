@@ -1,4 +1,5 @@
 # from flask import Flask, render_template, request, redirect, url_for, flash
+import os
 from flask_appbuilder import expose, BaseView
 from superset.superset_typing import FlaskResponse
 # from superset.views.base import BaseSupersetView
@@ -12,9 +13,10 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 logger.error("Custom view module loaded")
 
+TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "templates")
 
 class ReportUploadView(BaseView):
-    template_folder = "./templates"
+    template_folder =  TEMPLATES_DIR
     form = None
     choices = [
             ('1', 'Мероприятия по ПФГ для экономически активного населения и пенсионеров'),
