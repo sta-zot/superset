@@ -22,7 +22,6 @@ import {
   AnnotationData,
   AdhocMetric,
   JsonObject,
-  LatestQueryFormData,
 } from '@superset-ui/core';
 import {
   ColumnMeta,
@@ -53,7 +52,7 @@ export interface ChartState {
   chartUpdateEndTime: number | null;
   chartUpdateStartTime: number;
   lastRendered: number;
-  latestQueryFormData: LatestQueryFormData;
+  latestQueryFormData: Partial<QueryFormData>;
   sliceFormData: QueryFormData | null;
   queryController: AbortController | null;
   queriesResponse: QueryData[] | null;
@@ -98,6 +97,7 @@ export interface ExploreResponsePayload {
 export interface ExplorePageState {
   user: UserWithPermissionsAndRoles;
   common: {
+    flash_messages: string[];
     conf: JsonObject;
     locale: string;
   };

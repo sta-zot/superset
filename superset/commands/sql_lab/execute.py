@@ -92,7 +92,7 @@ class ExecuteSqlCommand(BaseCommand):
         pass
 
     @transaction()
-    def run(
+    def run(  # pylint: disable=too-many-statements,useless-suppression
         self,
     ) -> CommandResult:
         """Runs arbitrary sql and returns data as json"""

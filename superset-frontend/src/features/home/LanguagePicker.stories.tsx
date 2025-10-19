@@ -16,24 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Menu } from '@superset-ui/core/components/Menu';
-import { useLanguageMenuItems } from './LanguagePicker';
-import type { Languages } from './LanguagePicker';
-
-// Component to demonstrate the hook usage
-const LanguagePicker = ({
-  locale,
-  languages,
-}: {
-  locale: string;
-  languages: Languages;
-}) => {
-  const languageMenuItem = useLanguageMenuItems({ locale, languages });
-
-  return (
-    <Menu aria-label="Languages" items={[languageMenuItem]} mode="horizontal" />
-  );
-};
+import { MainNav as Menu } from 'src/components/Menu'; // Ensure correct import path
+import LanguagePicker from './LanguagePicker'; // Ensure correct import path
 
 export default {
   title: 'Components/LanguagePicker',
@@ -64,7 +48,11 @@ const mockedProps = {
   },
 };
 
-const Template = (args: any) => <LanguagePicker {...args} />;
+const Template = (args: any) => (
+  <Menu disabledOverflow>
+    <LanguagePicker {...args} />
+  </Menu>
+);
 
 export const Default = Template.bind({});
 Default.args = mockedProps;

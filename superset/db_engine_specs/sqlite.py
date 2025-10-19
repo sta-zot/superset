@@ -31,6 +31,7 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
 
 if TYPE_CHECKING:
+    # prevent circular imports
     from superset.models.core import Database
 
 
@@ -42,7 +43,6 @@ class SqliteEngineSpec(BaseEngineSpec):
     engine_name = "SQLite"
 
     disable_ssh_tunneling = True
-    supports_multivalues_insert = True
 
     _time_grain_expressions = {
         None: "{col}",

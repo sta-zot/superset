@@ -41,7 +41,7 @@ from superset.utils.date_parser import get_since_until
 revision = "f84fde59123a"
 down_revision = "9621c6d56ffb"
 
-logger = logging.getLogger("alembic.env")
+logger = logging.getLogger(__name__)
 Base = declarative_base()
 
 
@@ -113,9 +113,8 @@ def upgrade():
         except Exception as ex:
             session.rollback()
             logger.exception(
-                "An error occurred: Upgrading params for slice %s failed."
-                "You need to fix it before upgrading your DB.",
-                slc.id,
+                f"An error occurred: Upgrading params for slice {slc.id} failed."
+                f"You need to fix it before upgrading your DB."
             )
             raise Exception(f"An error occurred while upgrading slice: {ex}") from ex
 
@@ -214,9 +213,8 @@ def downgrade():
         except Exception as ex:
             session.rollback()
             logger.exception(
-                "An error occurred: Downgrading params for slice %s failed."
-                "You need to fix it before downgrading your DB.",
-                slc.id,
+                f"An error occurred: Downgrading params for slice {slc.id} failed."
+                f"You need to fix it before downgrading your DB."
             )
             raise Exception(f"An error occurred while downgrading slice: {ex}") from ex
 

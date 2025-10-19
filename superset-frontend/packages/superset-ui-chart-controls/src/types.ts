@@ -69,7 +69,7 @@ export interface Dataset {
   columns: ColumnMeta[];
   metrics: Metric[];
   column_formats: Record<string, string>;
-  currency_formats?: Record<string, Currency>;
+  currency_formats: Record<string, Currency>;
   verbose_map: Record<string, string>;
   main_dttm_col: string;
   // eg. ['["ds", true]', 'ds [asc]']
@@ -162,7 +162,6 @@ export type InternalControlType =
   | 'DatasourceControl'
   | 'DateFilterControl'
   | 'FixedOrMetricControl'
-  | 'ColorBreakpointsControl'
   | 'HiddenControl'
   | 'SelectAsyncControl'
   | 'SelectControl'
@@ -190,7 +189,7 @@ export type InternalControlType =
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ControlType = InternalControlType | ComponentType<any>;
 
-export type TabOverride = 'data' | 'customize' | 'matrixify' | boolean;
+export type TabOverride = 'data' | 'customize' | boolean;
 
 /**
  * Control config specifying how chart controls appear in the control panel, all
@@ -303,7 +302,7 @@ export interface FilterOption<T extends SelectOption> {
   data: T;
 }
 
-// Ref: superset-frontend/@superset-ui/core/components/Select/SupersetStyledSelect.tsx
+// Ref: superset-frontend/src/components/Select/SupersetStyledSelect.tsx
 export interface SelectControlConfig<
   O extends SelectOption = SelectOption,
   T extends SelectControlType = SelectControlType,
@@ -458,10 +457,6 @@ export enum Comparator {
   BetweenOrEqual = '≤ x ≤',
   BetweenOrLeftEqual = '≤ x <',
   BetweenOrRightEqual = '< x ≤',
-  BeginsWith = 'begins with',
-  EndsWith = 'ends with',
-  Containing = 'containing',
-  NotContaining = 'not containing',
 }
 
 export const MultipleValueComparators = [
@@ -473,7 +468,7 @@ export const MultipleValueComparators = [
 
 export type ConditionalFormattingConfig = {
   operator?: Comparator;
-  targetValue?: number | string;
+  targetValue?: number;
   targetValueLeft?: number;
   targetValueRight?: number;
   column?: string;
@@ -482,7 +477,7 @@ export type ConditionalFormattingConfig = {
 
 export type ColorFormatters = {
   column: string;
-  getColorFromValue: (value: number | string) => string | undefined;
+  getColorFromValue: (value: number) => string | undefined;
 }[];
 
 export default {};

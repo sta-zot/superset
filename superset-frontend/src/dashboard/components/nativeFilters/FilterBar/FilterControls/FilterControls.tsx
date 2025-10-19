@@ -34,6 +34,8 @@ import {
   css,
   SupersetTheme,
   t,
+  isFeatureEnabled,
+  FeatureFlag,
   isNativeFilterWithDataMask,
 } from '@superset-ui/core';
 import {
@@ -47,11 +49,10 @@ import {
   useSelectFiltersInScope,
 } from 'src/dashboard/components/nativeFilters/state';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
-import {
-  DropdownContainer,
-  type DropdownRef as DropdownContainerRef,
-} from '@superset-ui/core/components';
-import { Icons } from '@superset-ui/core/components/Icons';
+import DropdownContainer, {
+  Ref as DropdownContainerRef,
+} from 'src/components/DropdownContainer';
+import Icons from 'src/components/Icons';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
 import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';
@@ -65,18 +66,17 @@ import { useChartsVerboseMaps } from '../utils';
 type FilterControlsProps = {
   dataMaskSelected: DataMaskStateWithId;
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
-  clearAllTriggers?: Record<string, boolean>;
-  onClearAllComplete?: (filterId: string) => void;
 };
 
 const FilterControls: FC<FilterControlsProps> = ({
   dataMaskSelected,
   onFilterSelectionChange,
-  clearAllTriggers,
-  onClearAllComplete,
 }) => {
   const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
-    ({ dashboardInfo }) => dashboardInfo.filterBarOrientation,
+    ({ dashboardInfo }) =>
+      isFeatureEnabled(FeatureFlag.HorizontalFilterBar)
+        ? dashboardInfo.filterBarOrientation
+        : FilterBarOrientation.Vertical,
   );
 
   const { outlinedFilterId, lastUpdated } = useFilterOutlined();
@@ -104,8 +104,6 @@ const FilterControls: FC<FilterControlsProps> = ({
   const { filterControlFactory, filtersWithValues } = useFilterControlFactory(
     dataMaskSelected,
     onFilterSelectionChange,
-    clearAllTriggers,
-    onClearAllComplete,
   );
   const portalNodes = useMemo(() => {
     const nodes = new Array(filtersWithValues.length);
@@ -152,6 +150,7 @@ const FilterControls: FC<FilterControlsProps> = ({
           <FiltersOutOfScopeCollapsible
             filtersOutOfScope={filtersOutOfScope}
             forceRender={hasRequiredFirst}
+            hasTopMargin={filtersInScope.length > 0}
             renderer={renderer}
           />
         )}
@@ -232,7 +231,7 @@ const FilterControls: FC<FilterControlsProps> = ({
     () => (
       <div
         css={(theme: SupersetTheme) => css`
-          padding: 0 ${theme.sizeUnit * 4}px;
+          padding: 0 ${theme.gridUnit * 4}px;
           min-width: 0;
           flex: 1;
         `}
@@ -240,7 +239,7 @@ const FilterControls: FC<FilterControlsProps> = ({
         <DropdownContainer
           items={items}
           dropdownTriggerIcon={
-            <Icons.FilterOutlined
+            <Icons.FilterSmall
               css={css`
                 && {
                   margin-right: -4px;

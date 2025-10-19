@@ -53,7 +53,6 @@ class ExportAssetsCommand(BaseCommand):
             ExportDashboardsCommand,
             ExportSavedQueriesCommand,
         ]
-
         for command in commands:
             ids = [model.id for model in command.dao.find_all()]
             for file_name, file_content in command(ids, export_related=False).run():

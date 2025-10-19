@@ -16,8 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatasourceType, testQueryResponse } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import {
+  DatasourceType,
+  GenericDataType,
+  testQueryResponse,
+} from '@superset-ui/core';
 import { columnChoices } from '../../src';
 
 describe('columnChoices()', () => {
@@ -50,6 +53,7 @@ describe('columnChoices()', () => {
         ],
         verbose_map: {},
         column_formats: { fiz: 'NUMERIC', about: 'STRING', foo: 'DATE' },
+        currency_formats: {},
         datasource_name: 'my_datasource',
         description: 'this is my datasource',
       }),
@@ -101,6 +105,7 @@ describe('columnChoices()', () => {
         ],
         verbose_map: {},
         column_formats: { fiz: 'NUMERIC', about: 'STRING', foo: 'DATE' },
+        currency_formats: {},
         datasource_name: 'my_datasource',
         description: 'this is my datasource',
       }),

@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  GenericDataType,
   NumberFormats,
   QueryFormColumn,
   getColumnLabel,
@@ -24,11 +25,8 @@ import {
   getSequentialSchemeRegistry,
   getTimeFormatter,
   getValueFormatter,
-  rgbToHex,
-  addAlpha,
   tooltipHtml,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
 import memoizeOne from 'memoize-one';
 import { maxBy, minBy } from 'lodash';
 import type { ComposeOption } from 'echarts/core';
@@ -77,8 +75,7 @@ export default function transformProps(
   chartProps: HeatmapChartProps,
 ): HeatmapTransformedProps {
   const refs: Refs = {};
-  const { width, height, formData, queriesData, datasource, theme } =
-    chartProps;
+  const { width, height, formData, queriesData, datasource } = chartProps;
   const {
     bottomMargin,
     xAxis,
@@ -89,8 +86,6 @@ export default function transformProps(
     metric = '',
     normalizeAcross,
     normalized,
-    borderColor,
-    borderWidth = 0,
     showLegend,
     showPercentage,
     showValues,
@@ -99,7 +94,6 @@ export default function transformProps(
     valueBounds,
     yAxisFormat,
     xAxisTimeFormat,
-    xAxisLabelRotation,
     currencyFormat,
   } = formData;
   const metricLabel = getMetricLabel(metric);
@@ -165,20 +159,6 @@ export default function transformProps(
         formatter: (params: CallbackDataParams) => {
           const paramsValue = params.value as (string | number)[];
           return valueFormatter(paramsValue?.[2] as number | null | undefined);
-        },
-      },
-      itemStyle: {
-        borderColor: addAlpha(
-          rgbToHex(borderColor.r, borderColor.g, borderColor.b),
-          borderColor.a,
-        ),
-        borderWidth,
-      },
-      emphasis: {
-        itemStyle: {
-          borderColor: 'transparent',
-          shadowBlur: 10,
-          shadowColor: addAlpha(theme.colorText, 0.3),
         },
       },
     },
@@ -252,7 +232,6 @@ export default function transformProps(
       axisLabel: {
         formatter: xAxisFormatter,
         interval: xscaleInterval === -1 ? 'auto' : xscaleInterval - 1,
-        rotate: xAxisLabelRotation,
       },
     },
     yAxis: {

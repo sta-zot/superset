@@ -25,7 +25,6 @@ import {
   FilterState,
   FormulaAnnotationLayer,
   IntervalAnnotationLayer,
-  isThemeDark,
   LegendState,
   SupersetTheme,
   TimeseriesAnnotationLayer,
@@ -138,33 +137,6 @@ export const getBaselineSeriesForStream = (
   };
 };
 
-export function transformNegativeLabelsPosition(
-  series: SeriesOption,
-  isHorizontal: boolean,
-): TimeseriesDataRecord[] {
-  /*
-   * Adjusts label position for negative values in bar series
-   * @param series - Array of series options
-   * @param isHorizontal - Whether chart is horizontal
-   * @returns data with adjusted label positions for negative values
-   */
-  const transformValue = (value: any) => {
-    const [xValue, yValue] = Array.isArray(value) ? value : [null, null];
-    const axisValue = isHorizontal ? xValue : yValue;
-
-    return axisValue < 0
-      ? {
-          value,
-          label: {
-            position: 'outside',
-          },
-        }
-      : value;
-  };
-
-  return (series.data as TimeseriesDataRecord[]).map(transformValue);
-}
-
 export function transformSeries(
   series: SeriesOption,
   colorScale: CategoricalColorScale,
@@ -196,10 +168,9 @@ export function transformSeries(
     queryIndex?: number;
     timeCompare?: string[];
     timeShiftColor?: boolean;
-    theme?: SupersetTheme;
   },
 ): SeriesOption | undefined {
-  const { name, data } = series;
+  const { name } = series;
   const {
     area,
     connectNulls,
@@ -226,7 +197,6 @@ export function transformSeries(
     queryIndex = 0,
     timeCompare = [],
     timeShiftColor,
-    theme,
   } = opts;
   const contexts = seriesContexts[name || ''] || [];
   const hasForecast =
@@ -274,9 +244,6 @@ export function transformSeries(
   } else {
     plotType = seriesType === 'bar' ? 'bar' : 'line';
   }
-
-  const isDarkMode = theme ? isThemeDark(theme) : false;
-
   /**
    * if timeShiftColor is enabled the colorScaleKey forces the color to be the
    * same as the original series, otherwise uses separate colors
@@ -320,17 +287,8 @@ export function transformSeries(
     isConfidenceBand || (stack === StackControlsValue.Stream && area)
       ? { ...opts.lineStyle, opacity: OpacityEnum.Transparent }
       : { ...opts.lineStyle, opacity };
-
-  // Use filled circles in dark mode to avoid the white fill issue with hollow circles
-  // Use emptyCircle explicitly in light mode
-  const symbol =
-    plotType === 'line' ? (isDarkMode ? 'circle' : 'emptyCircle') : undefined;
-
   return {
     ...series,
-    ...(Array.isArray(data) && seriesType === 'bar' && !stack
-      ? { data: transformNegativeLabelsPosition(series, isHorizontal) }
-      : null),
     connectNulls,
     queryIndex,
     yAxisIndex,
@@ -358,13 +316,10 @@ export function transformSeries(
         : undefined,
     emphasis,
     showSymbol,
-    symbol,
     symbolSize: markerSize,
     label: {
       show: !!showValue,
       position: isHorizontal ? 'right' : 'top',
-      color: theme?.colorText,
-      textBorderWidth: 0,
       formatter: (params: any) => {
         // don't show confidence band value labels, as they're already visible on the tooltip
         if (
@@ -466,7 +421,7 @@ export function transformIntervalAnnotation(
     const intervalLabel: SeriesLabelOption = showLabel
       ? {
           show: true,
-          color: theme.colorTextLabel,
+          color: theme.colors.grayscale.dark2,
           position: 'insideTop',
           verticalAlign: 'top',
           fontWeight: 'bold',
@@ -474,19 +429,19 @@ export function transformIntervalAnnotation(
           emphasis: {
             position: 'insideTop',
             verticalAlign: 'top',
-            backgroundColor: theme.colorPrimaryBgHover,
+            backgroundColor: theme.colors.grayscale.light5,
           },
         }
       : {
           show: false,
-          color: theme.colorTextLabel,
+          color: theme.colors.grayscale.dark2,
           // @ts-ignore
           emphasis: {
             fontWeight: 'bold',
             show: true,
             position: 'insideTop',
             verticalAlign: 'top',
-            backgroundColor: theme.colorPrimaryBgHover,
+            backgroundColor: theme.colors.grayscale.light5,
           },
         };
     series.push({
@@ -547,25 +502,25 @@ export function transformEventAnnotation(
     const eventLabel: SeriesLineLabelOption = showLabel
       ? {
           show: true,
-          color: theme.colorTextLabel,
+          color: theme.colors.grayscale.dark2,
           position: 'insideEndTop',
           fontWeight: 'bold',
           formatter: (params: CallbackDataParams) => params.name,
           // @ts-ignore
           emphasis: {
-            backgroundColor: theme.colorPrimaryBgHover,
+            backgroundColor: theme.colors.grayscale.light5,
           },
         }
       : {
           show: false,
-          color: theme.colorTextLabel,
+          color: theme.colors.grayscale.dark2,
           position: 'insideEndTop',
           // @ts-ignore
           emphasis: {
             formatter: (params: CallbackDataParams) => params.name,
             fontWeight: 'bold',
             show: true,
-            backgroundColor: theme.colorPrimaryBgHover,
+            backgroundColor: theme.colors.grayscale.light5,
           },
         };
 

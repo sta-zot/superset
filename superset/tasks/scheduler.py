@@ -22,9 +22,8 @@ from typing import Any
 
 from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
-from flask import current_app
 
-from superset import is_feature_enabled
+from superset import app, is_feature_enabled
 from superset.commands.exceptions import CommandException
 from superset.commands.logs.prune import LogPruneCommand
 from superset.commands.report.exceptions import ReportScheduleUnexpectedError
@@ -46,7 +45,7 @@ def scheduler() -> None:
     """
     Celery beat main scheduler for reports
     """
-    stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
+    stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
     stats_logger.incr("reports.scheduler")
 
     if not is_feature_enabled("ALERT_REPORTS"):
@@ -54,7 +53,7 @@ def scheduler() -> None:
     active_schedules = ReportScheduleDAO.find_active()
     triggered_at = (
         datetime.fromisoformat(scheduler.request.expires)
-        - current_app.config["CELERY_BEAT_SCHEDULER_EXPIRES"]
+        - app.config["CELERY_BEAT_SCHEDULER_EXPIRES"]
         if scheduler.request.expires
         else datetime.now(tz=timezone.utc)
     )
@@ -66,22 +65,22 @@ def scheduler() -> None:
             async_options = {"eta": schedule}
             if (
                 active_schedule.working_timeout is not None
-                and current_app.config["ALERT_REPORTS_WORKING_TIME_OUT_KILL"]
+                and app.config["ALERT_REPORTS_WORKING_TIME_OUT_KILL"]
             ):
                 async_options["time_limit"] = (
                     active_schedule.working_timeout
-                    + current_app.config["ALERT_REPORTS_WORKING_TIME_OUT_LAG"]
+                    + app.config["ALERT_REPORTS_WORKING_TIME_OUT_LAG"]
                 )
                 async_options["soft_time_limit"] = (
                     active_schedule.working_timeout
-                    + current_app.config["ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG"]
+                    + app.config["ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG"]
                 )
             execute.apply_async((active_schedule.id,), **async_options)
 
 
 @celery_app.task(name="reports.execute", bind=True)
 def execute(self: Task, report_schedule_id: int) -> None:
-    stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
+    stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
     stats_logger.incr("reports.execute")
 
     task_id = None
@@ -116,7 +115,7 @@ def execute(self: Task, report_schedule_id: int) -> None:
 
 @celery_app.task(name="reports.prune_log")
 def prune_log() -> None:
-    stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
+    stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
     stats_logger.incr("reports.prune_log")
 
     try:
@@ -131,7 +130,7 @@ def prune_log() -> None:
 def prune_query(
     self: Task, retention_period_days: int | None = None, **kwargs: Any
 ) -> None:
-    stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
+    stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
     stats_logger.incr("prune_query")
 
     # TODO: Deprecated: Remove support for passing retention period via options in 6.0
@@ -154,7 +153,7 @@ def prune_query(
 def prune_logs(
     self: Task, retention_period_days: int | None = None, **kwargs: Any
 ) -> None:
-    stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
+    stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
     stats_logger.incr("prune_logs")
 
     # TODO: Deprecated: Remove support for passing retention period via options in 6.0

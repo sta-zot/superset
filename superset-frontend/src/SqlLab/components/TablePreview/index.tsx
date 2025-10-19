@@ -23,23 +23,20 @@ import {
   ClientErrorObject,
   css,
   getExtensionsRegistry,
+  SafeMarkdown,
   styled,
   t,
 } from '@superset-ui/core';
-import {
-  SafeMarkdown,
-  Alert,
-  Breadcrumb,
-  Button,
-  Card,
-  Dropdown,
-  Skeleton,
-} from '@superset-ui/core/components';
 import AutoSizer from 'react-virtualized-auto-sizer';
-import { Icons } from '@superset-ui/core/components/Icons';
+import Icons from 'src/components/Icons';
 import type { SqlLabRootState } from 'src/SqlLab/types';
-import { CopyToClipboard, FilterableTable } from 'src/components';
-import Tabs from '@superset-ui/core/components/Tabs';
+import {
+  Skeleton,
+  AntdBreadcrumb as Breadcrumb,
+  AntdDropdown,
+} from 'src/components';
+import FilterableTable from 'src/components/FilterableTable';
+import Tabs from 'src/components/Tabs';
 import {
   tableApiUtil,
   TableMetaData,
@@ -47,7 +44,10 @@ import {
   useTableMetadataQuery,
 } from 'src/hooks/apiResources';
 import { runTablePreviewQuery } from 'src/SqlLab/actions/sqlLab';
-import { Menu } from '@superset-ui/core/components/Menu';
+import Alert from 'src/components/Alert';
+import { Menu } from 'src/components/Menu';
+import Card from 'src/components/Card';
+import CopyToClipboard from 'src/components/CopyToClipboard';
 import ResultSet from '../ResultSet';
 import ShowSQL from '../ShowSQL';
 
@@ -61,43 +61,36 @@ type Props = {
 const extensionsRegistry = getExtensionsRegistry();
 
 const COLUMN_KEYS = ['column_name', 'column_type', 'keys', 'comment'];
-
-const TABS_KEYS = {
-  COLUMNS: 'columns',
-  METADATA: 'metadata',
-  INDEXES: 'indexes',
-  SAMPLE: 'sample',
-};
 const MENUS = [
   {
     key: 'refresh-table',
     label: t('Refresh table schema'),
-    icon: <Icons.SyncOutlined iconSize="s" aria-hidden />,
+    icon: <i aria-hidden className="fa fa-refresh" />,
   },
   {
     key: 'copy-select-statement',
     label: t('Copy SELECT statement'),
-    icon: <Icons.CopyOutlined iconSize="s" aria-hidden />,
+    icon: <i aria-hidden className="fa fa-clipboard m-l-2" />,
   },
   {
     key: 'show-create-view-statement',
     label: t('Show CREATE VIEW statement'),
-    icon: <Icons.EyeOutlined iconSize="s" aria-hidden />,
+    icon: <i aria-hidden className="fa fa-eye" />,
   },
 ];
 const TAB_HEADER_HEIGHT = 80;
+const PREVIEW_TOP_ACTION_HEIGHT = 30;
 const PREVIEW_QUERY_LIMIT = 100;
 
 const Title = styled.div`
-  ${({ theme }) => css`
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    column-gap: ${theme.sizeUnit}px;
-    font-size: ${theme.fontSizeLG}px;
-    font-weight: ${theme.fontWeightStrong};
-  `}
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  column-gap: ${({ theme }) => theme.gridUnit}px;
+  font-size: ${({ theme }) => theme.typography.sizes.l}px;
+  font-weight: ${({ theme }) => theme.typography.weights.bold};
 `;
+
 const renderWell = (partitions: TableMetaData['partitions']) => {
   if (!partitions) {
     return null;
@@ -111,7 +104,7 @@ const renderWell = (partitions: TableMetaData['partitions']) => {
         text={partitionQuery}
         shouldShowText={false}
         tooltipText={tt}
-        copyNode={<Icons.CopyOutlined iconSize="s" />}
+        copyNode={<i className="fa fa-clipboard" />}
       />
     );
   }
@@ -313,10 +306,10 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
         )}
       </div>
       <Title>
-        <Icons.InsertRowAboveOutlined iconSize="l" />
+        <Icons.Table iconSize="l" />
         {tableName}
-        <Dropdown
-          popupRender={() => (
+        <AntdDropdown
+          overlay={
             <Menu
               onClick={({ key }) => {
                 if (key === 'refresh-table') {
@@ -331,17 +324,15 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
               }}
               items={dropdownMenu}
             />
-          )}
+          }
           trigger={['click']}
         >
-          <Button buttonSize="xsmall" buttonStyle="link">
-            <Icons.DownSquareOutlined
-              iconSize="m"
-              style={{ marginTop: 2, marginLeft: 4 }}
-              aria-label={t('Table actions')}
-            />
-          </Button>
-        </Dropdown>
+          <Icons.DownSquareOutlined
+            iconSize="m"
+            style={{ marginTop: 2, marginLeft: 4 }}
+            aria-label={t('Table actions')}
+          />
+        </AntdDropdown>
       </Title>
       {isMetadataRefreshing ? (
         <Skeleton active />
@@ -355,95 +346,79 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
             `}
           >
             <AutoSizer disableWidth>
-              {({ height }) => {
-                const tabItems = [];
-
-                tabItems.push({
-                  key: TABS_KEYS.COLUMNS,
-                  label: t('Columns (%s)', data.length),
-                  children: (
+              {({ height }) => (
+                <Tabs
+                  fullWidth={false}
+                  onTabClick={onTabSwitch}
+                  css={css`
+                    height: ${height}px;
+                  `}
+                >
+                  <Tabs.TabPane
+                    tab={t('Columns (%s)', data.length)}
+                    key="columns"
+                  >
                     <ResultTable
                       queryId="table-columns"
                       height={height - TAB_HEADER_HEIGHT}
                       data={data}
                       orderedColumnKeys={columns}
                     />
-                  ),
-                });
-
-                if (tableData?.selectStar && !disableDataPreview) {
-                  tabItems.push({
-                    key: TABS_KEYS.SAMPLE,
-                    label: t('Data preview'),
-                    children: previewQueryId && (
-                      <ResultSet
-                        queryId={previewQueryId}
-                        visualize={false}
-                        csv={false}
-                        cache
-                        displayLimit={PREVIEW_QUERY_LIMIT}
-                        defaultQueryLimit={PREVIEW_QUERY_LIMIT}
-                      />
-                    ),
-                  });
-                }
-
-                if (tableData?.indexes && tableData.indexes.length > 0) {
-                  tabItems.push({
-                    key: TABS_KEYS.INDEXES,
-                    label: t('Indexes (%s)', tableData.indexes.length),
-                    children: tableData.indexes.map((ix, i) => (
-                      <pre className="code" key={i}>
-                        {JSON.stringify(ix, null, '  ')}
-                      </pre>
-                    )),
-                  });
-                }
-
-                if (tableData?.metadata) {
-                  tabItems.push({
-                    key: TABS_KEYS.METADATA,
-                    label: t('Metadata'),
-                    children: (
+                  </Tabs.TabPane>
+                  {tableData?.selectStar && !disableDataPreview && (
+                    <Tabs.TabPane tab={t('Data preview')} key="sample">
+                      {previewQueryId && (
+                        <ResultSet
+                          queryId={previewQueryId}
+                          visualize={false}
+                          csv={false}
+                          cache
+                          height={
+                            height -
+                            TAB_HEADER_HEIGHT -
+                            PREVIEW_TOP_ACTION_HEIGHT
+                          }
+                          displayLimit={PREVIEW_QUERY_LIMIT}
+                          defaultQueryLimit={PREVIEW_QUERY_LIMIT}
+                        />
+                      )}
+                    </Tabs.TabPane>
+                  )}
+                  {tableData?.indexes && tableData.indexes.length > 0 && (
+                    <Tabs.TabPane
+                      tab={t('Indexes (%s)', tableData.indexes.length)}
+                      key="indexes"
+                    >
+                      {tableData.indexes.map((ix, i) => (
+                        <pre className="code" key={i}>
+                          {JSON.stringify(ix, null, '  ')}
+                        </pre>
+                      ))}
+                    </Tabs.TabPane>
+                  )}
+                  {tableData?.metadata && (
+                    <Tabs.TabPane tab={t('Metadata')} key="metadata">
                       <ResultTable
                         queryId="table-metadata"
                         height={height - TAB_HEADER_HEIGHT}
                         data={Object.entries(tableData.metadata).map(
-                          ([name, value]) => ({
-                            name,
-                            value,
-                          }),
+                          ([name, value]) => ({ name, value }),
                         )}
                         orderedColumnKeys={['name', 'value']}
                       />
-                    ),
-                  });
-                }
-
-                customTabs.forEach(([title, ExtComponent]) => {
-                  tabItems.push({
-                    key: title,
-                    label: title,
-                    children: (
+                    </Tabs.TabPane>
+                  )}
+                  {customTabs.map(([title, ExtComponent]) => (
+                    <Tabs.TabPane tab={title} key={title}>
                       <ExtComponent
                         dbId={Number(dbId)}
                         schema={schema ?? ''}
                         tableName={tableName}
                       />
-                    ),
-                  });
-                });
-
-                return (
-                  <Tabs
-                    onTabClick={onTabSwitch}
-                    css={css`
-                      height: ${height}px;
-                    `}
-                    items={tabItems}
-                  />
-                );
-              }}
+                    </Tabs.TabPane>
+                  ))}
+                </Tabs>
+              )}
             </AutoSizer>
           </div>
         </>

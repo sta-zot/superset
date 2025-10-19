@@ -16,34 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { VizType, css } from '@superset-ui/core';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { VizType } from '@superset-ui/core';
+import Icons from 'src/components/Icons';
 import { VizMeta } from './types';
 
 export const FEATURED_CHARTS: VizMeta[] = [
   {
     name: VizType.Line,
-    icon: <Icons.LineChartOutlined iconSize="l" />,
+    icon: <Icons.LineChartTile />,
   },
   {
     name: VizType.Bar,
-    icon: <Icons.BarChartOutlined iconSize="l" />,
+    icon: <Icons.BarChartTile />,
   },
-  { name: VizType.Area, icon: <Icons.AreaChartOutlined iconSize="l" /> },
-  { name: VizType.Table, icon: <Icons.TableOutlined iconSize="l" /> },
+  { name: VizType.Area, icon: <Icons.AreaChartTile /> },
+  { name: VizType.Table, icon: <Icons.TableChartTile /> },
   {
     name: VizType.BigNumberTotal,
-    icon: (
-      <Icons.BigNumberChartTile
-        iconSize="l"
-        viewBox="0 0 16 14"
-        css={css`
-          path {
-            fill: currentColor;
-          }
-        `}
-      />
-    ),
+    icon: <Icons.BigNumberChartTile />,
   },
-  { name: VizType.Pie, icon: <Icons.PieChartOutlined iconSize="l" /> },
+  { name: VizType.Pie, icon: <Icons.PieChartTile /> },
 ];

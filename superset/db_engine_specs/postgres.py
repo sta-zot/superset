@@ -35,9 +35,9 @@ from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.sql_lab import Query
-from superset.sql.parse import process_jinja_sql
+from superset.sql_parse import process_jinja_sql
 from superset.utils import core as utils, json
-from superset.utils.core import GenericDataType, QuerySource
+from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
@@ -99,7 +99,6 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
     engine = ""
     engine_name = "PostgreSQL"
-    supports_multivalues_insert = True
 
     _time_grain_expressions = {
         None: "{col}",
@@ -321,7 +320,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         return uri, connect_args
 
     @classmethod
-    def get_default_catalog(cls, database: Database) -> str:
+    def get_default_catalog(cls, database: Database) -> str | None:
         """
         Return the default catalog for a given database.
         """
@@ -413,9 +412,7 @@ WHERE datistemplate = false;
         )
 
     @staticmethod
-    def get_extra_params(
-        database: Database, source: QuerySource | None = None
-    ) -> dict[str, Any]:
+    def get_extra_params(database: Database) -> dict[str, Any]:
         """
         For Postgres, the path to a SSL certificate is placed in `connect_args`.
 

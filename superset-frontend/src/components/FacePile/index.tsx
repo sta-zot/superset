@@ -16,21 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+import type Owner from 'src/types/Owner';
 import {
   getCategoricalSchemeRegistry,
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
 import getOwnerName from 'src/utils/getOwnerName';
-import { Avatar, AvatarGroup, Tooltip } from '@superset-ui/core/components';
-import { ensureAppRoot } from 'src/utils/pathUtils';
+import { Tooltip } from 'src/components/Tooltip';
+import { Avatar, AvatarGroup } from 'src/components/Avatar';
 import { getRandomColor } from './utils';
-import type { FacePileProps } from './types';
+
+interface FacePileProps {
+  users: Owner[];
+  maxCount?: number;
+}
 
 const colorList = getCategoricalSchemeRegistry().get()?.colors ?? [];
 
-export function FacePile({ users, maxCount = 4 }: FacePileProps) {
+export default function FacePile({ users, maxCount = 4 }: FacePileProps) {
   return (
     <AvatarGroup max={{ count: maxCount }}>
       {users.map(user => {
@@ -39,7 +43,7 @@ export function FacePile({ users, maxCount = 4 }: FacePileProps) {
         const uniqueKey = `${id}-${first_name}-${last_name}`;
         const color = getRandomColor(uniqueKey, colorList);
         const avatarUrl = isFeatureEnabled(FeatureFlag.SlackEnableAvatars)
-          ? ensureAppRoot(`/api/v1/user/${id}/avatar.png`)
+          ? `/api/v1/user/${id}/avatar.png`
           : undefined;
         return (
           <Tooltip key={name} title={name} placement="top">
@@ -60,5 +64,3 @@ export function FacePile({ users, maxCount = 4 }: FacePileProps) {
     </AvatarGroup>
   );
 }
-
-export type { FacePileProps };

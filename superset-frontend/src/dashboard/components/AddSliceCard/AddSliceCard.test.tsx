@@ -18,13 +18,8 @@
  */
 
 import { FeatureFlag, VizType } from '@superset-ui/core';
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  within,
-} from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
+import { act, render, screen, within } from 'spec/helpers/testing-library';
 import AddSliceCard from './AddSliceCard';
 
 jest.mock('src/components/DynamicPlugins', () => ({

@@ -74,7 +74,7 @@ class TestExportChartsCommand(SupersetTestCase):
         expected = [
             "metadata.yaml",
             f"charts/Energy_Sankey_{example_chart.id}.yaml",
-            f"datasets/examples/energy_usage_{example_chart.table.id}.yaml",
+            "datasets/examples/energy_usage.yaml",
             "databases/examples.yaml",
         ]
         assert expected == list(contents.keys())
@@ -104,13 +104,11 @@ class TestExportChartsCommand(SupersetTestCase):
             "query_context": None,
         }
 
-    @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_export_chart_command_no_access(self, utils_mock_g, manager_mock_g):
+    def test_export_chart_command_no_access(self, mock_g):
         """Test that users can't export datasets they don't have access to"""
-        manager_mock_g.user = security_manager.find_user("gamma")
-        utils_mock_g.user = manager_mock_g.user
+        mock_g.user = security_manager.find_user("gamma")
 
         example_chart = db.session.query(Slice).all()[0]
         command = ExportChartsCommand([example_chart.id])
@@ -313,7 +311,7 @@ class TestImportChartsCommand(SupersetTestCase):
         command = ImportChartsCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value).startswith("Error importing chart")
+        assert str(excinfo.value) == "Error importing chart"
         assert excinfo.value.normalized_messages() == {
             "metadata.yaml": {"type": ["Must be equal to Slice."]}
         }
@@ -326,7 +324,7 @@ class TestImportChartsCommand(SupersetTestCase):
         command = ImportChartsCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value).startswith("Error importing chart")
+        assert str(excinfo.value) == "Error importing chart"
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
                 "database_name": ["Missing data for required field."],

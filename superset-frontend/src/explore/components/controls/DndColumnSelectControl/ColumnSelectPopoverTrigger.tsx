@@ -17,24 +17,15 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useState, ReactNode } from 'react';
-import { useSelector } from 'react-redux';
 
-import {
-  AdhocColumn,
-  t,
-  isAdhocColumn,
-  Metric,
-  QueryFormMetric,
-} from '@superset-ui/core';
+import { useSelector } from 'react-redux';
+import { AdhocColumn, t, isAdhocColumn } from '@superset-ui/core';
 import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
 import { ExplorePopoverContent } from 'src/explore/components/ExploreContentPopover';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import ColumnSelectPopover from './ColumnSelectPopover';
 import { DndColumnSelectPopoverTitle } from './DndColumnSelectPopoverTitle';
 import ControlPopover from '../ControlPopover/ControlPopover';
-
-const defaultPopoverLabel = t('My column');
-const editableTitleTab = 'sqlExpression';
 
 interface ColumnSelectPopoverTriggerProps {
   columns: ColumnMeta[];
@@ -47,26 +38,12 @@ interface ColumnSelectPopoverTriggerProps {
   children: ReactNode;
   isTemporal?: boolean;
   disabledTabs?: Set<string>;
-  metrics?: Metric[];
-  selectedMetrics?: QueryFormMetric[];
 }
 
-const ColumnSelectPopoverTriggerWrapper = (
-  props: ColumnSelectPopoverTriggerProps,
-) => {
-  const datasource = useSelector(
-    (state: any) => state?.explore?.datasource || null,
-  );
+const defaultPopoverLabel = t('My column');
+const editableTitleTab = 'sqlExpression';
 
-  return <ColumnSelectPopoverTriggerInner {...props} datasource={datasource} />;
-};
-
-interface ColumnSelectPopoverTriggerInnerProps
-  extends ColumnSelectPopoverTriggerProps {
-  datasource?: any;
-}
-
-const ColumnSelectPopoverTriggerInner = ({
+const ColumnSelectPopoverTrigger = ({
   columns,
   editedColumn,
   onColumnEdit,
@@ -74,11 +51,10 @@ const ColumnSelectPopoverTriggerInner = ({
   children,
   isTemporal,
   disabledTabs,
-  metrics,
-  selectedMetrics,
-  datasource,
   ...props
-}: ColumnSelectPopoverTriggerInnerProps) => {
+}: ColumnSelectPopoverTriggerProps) => {
+  // @ts-ignore
+  const datasource = useSelector(state => state.explore.datasource);
   const [popoverLabel, setPopoverLabel] = useState(defaultPopoverLabel);
   const [popoverVisible, setPopoverVisible] = useState(false);
   const [isTitleEditDisabled, setIsTitleEditDisabled] = useState(true);
@@ -91,6 +67,10 @@ const ColumnSelectPopoverTriggerInner = ({
   } else if (editedColumn && isAdhocColumn(editedColumn)) {
     initialPopoverLabel = editedColumn.label || defaultPopoverLabel;
   }
+
+  useEffect(() => {
+    setPopoverLabel(initialPopoverLabel);
+  }, [initialPopoverLabel, popoverVisible]);
 
   const togglePopover = useCallback((visible: boolean) => {
     setPopoverVisible(visible);
@@ -117,13 +97,6 @@ const ColumnSelectPopoverTriggerInner = ({
     setIsTitleEditDisabled(tab !== editableTitleTab);
   }, []);
 
-  useEffect(() => {
-    setPopoverLabel(initialPopoverLabel);
-    if (!visible) {
-      setHasCustomLabel(false);
-    }
-  }, [initialPopoverLabel, visible]);
-
   const overlayContent = useMemo(
     () => (
       <ExplorePopoverContent>
@@ -139,9 +112,6 @@ const ColumnSelectPopoverTriggerInner = ({
           getCurrentTab={getCurrentTab}
           isTemporal={isTemporal}
           disabledTabs={disabledTabs}
-          metrics={metrics}
-          selectedMetrics={selectedMetrics}
-          datasource={datasource}
         />
       </ExplorePopoverContent>
     ),
@@ -155,39 +125,28 @@ const ColumnSelectPopoverTriggerInner = ({
       onColumnEdit,
       popoverLabel,
       disabledTabs,
-      metrics,
-      selectedMetrics,
-      datasource,
     ],
   );
 
   const onLabelChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    (e: any) => {
       setPopoverLabel(e.target.value);
       setHasCustomLabel(true);
     },
     [setPopoverLabel, setHasCustomLabel],
   );
 
-  const popoverTitle = useMemo(() => {
-    if (disabledTabs?.has('saved') && disabledTabs?.has('sqlExpression')) {
-      return <span>{t('Tooltip contents')}</span>;
-    }
-    return (
+  const popoverTitle = useMemo(
+    () => (
       <DndColumnSelectPopoverTitle
         title={popoverLabel}
         onChange={onLabelChange}
         isEditDisabled={isTitleEditDisabled}
         hasCustomLabel={hasCustomLabel}
       />
-    );
-  }, [
-    hasCustomLabel,
-    isTitleEditDisabled,
-    onLabelChange,
-    popoverLabel,
-    disabledTabs,
-  ]);
+    ),
+    [hasCustomLabel, isTitleEditDisabled, onLabelChange, popoverLabel],
+  );
 
   return (
     <>
@@ -206,9 +165,9 @@ const ColumnSelectPopoverTriggerInner = ({
       <ControlPopover
         trigger="click"
         content={overlayContent}
-        defaultOpen={visible}
-        open={visible}
-        onOpenChange={handleTogglePopover}
+        defaultVisible={visible}
+        visible={visible}
+        onVisibleChange={handleTogglePopover}
         title={popoverTitle}
         destroyTooltipOnHide
       >
@@ -218,4 +177,4 @@ const ColumnSelectPopoverTriggerInner = ({
   );
 };
 
-export default ColumnSelectPopoverTriggerWrapper;
+export default ColumnSelectPopoverTrigger;

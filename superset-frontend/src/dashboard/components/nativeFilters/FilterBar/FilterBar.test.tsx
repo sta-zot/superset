@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { act, render, screen, userEvent } from 'spec/helpers/testing-library';
+import { render, screen, act } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
 import { testWithId } from 'src/utils/testUtils';
 import { Preset, makeApi } from '@superset-ui/core';
@@ -76,9 +77,9 @@ const getModalTestId = testWithId<string>(FILTERS_CONFIG_MODAL_TEST_ID, true);
 const FILTER_NAME = 'Time filter 1';
 
 const addFilterFlow = async () => {
-  // open filter config modals
+  // open filter config modal
   userEvent.click(screen.getByTestId(getTestId('collapsable')));
-  userEvent.click(screen.getByLabelText('setting'));
+  userEvent.click(screen.getByLabelText('gear'));
   userEvent.click(screen.getByText('Add or edit filters'));
   // select filter
   userEvent.click(screen.getByText('Value'));
@@ -89,7 +90,6 @@ const addFilterFlow = async () => {
   // await screen.findByText('All filters (1)');
 };
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('FilterBar', () => {
   new MainPreset().register();
   const toggleFiltersBar = jest.fn();
@@ -179,49 +179,45 @@ describe('FilterBar', () => {
       },
     );
 
-  test('should render', () => {
+  it('should render', () => {
     const { container } = renderWrapper();
     expect(container).toBeInTheDocument();
   });
 
-  test('should render the "Filters" heading', () => {
+  it('should render the "Filters" heading', () => {
     renderWrapper();
     expect(screen.getByText('Filters')).toBeInTheDocument();
   });
 
-  test('should render the "Clear all" option', () => {
+  it('should render the "Clear all" option', () => {
     renderWrapper();
     expect(screen.getByText('Clear all')).toBeInTheDocument();
   });
 
-  test('should render the "Apply filters" option', () => {
+  it('should render the "Apply filters" option', () => {
     renderWrapper();
     expect(screen.getByText('Apply filters')).toBeInTheDocument();
   });
 
-  test('should render the collapse icon', () => {
+  it('should render the collapse icon', () => {
     renderWrapper();
-    expect(
-      screen.getByRole('img', { name: 'vertical-align' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'collapse' })).toBeInTheDocument();
   });
 
-  test('should render the filter icon', () => {
+  it('should render the filter icon', () => {
     renderWrapper();
     expect(screen.getByRole('img', { name: 'filter' })).toBeInTheDocument();
   });
 
-  test('should toggle', () => {
+  it('should toggle', () => {
     renderWrapper();
-    const collapse = screen.getByRole('img', {
-      name: 'vertical-align',
-    });
+    const collapse = screen.getByRole('img', { name: 'collapse' });
     expect(toggleFiltersBar).not.toHaveBeenCalled();
     userEvent.click(collapse);
     expect(toggleFiltersBar).toHaveBeenCalled();
   });
 
-  test('open filter bar', () => {
+  it('open filter bar', () => {
     renderWrapper();
     expect(screen.getByTestId(getTestId('filter-icon'))).toBeInTheDocument();
     expect(screen.getByTestId(getTestId('expand-button'))).toBeInTheDocument();
@@ -230,7 +226,7 @@ describe('FilterBar', () => {
     expect(toggleFiltersBar).toHaveBeenCalledWith(true);
   });
 
-  test('no edit filter button by disabled permissions', () => {
+  it('no edit filter button by disabled permissions', () => {
     renderWrapper(openedBarProps, {
       ...stateWithoutNativeFilters,
       dashboardInfo: { metadata: {} },
@@ -241,7 +237,7 @@ describe('FilterBar', () => {
     ).not.toBeInTheDocument();
   });
 
-  test('close filter bar', () => {
+  it('close filter bar', () => {
     renderWrapper(openedBarProps);
     const collapseButton = screen.getByTestId(getTestId('collapse-button'));
 
@@ -251,14 +247,14 @@ describe('FilterBar', () => {
     expect(toggleFiltersBar).toHaveBeenCalledWith(false);
   });
 
-  test('no filters', () => {
+  it('no filters', () => {
     renderWrapper(openedBarProps, stateWithoutNativeFilters);
 
     expect(screen.getByTestId(getTestId('clear-button'))).toBeDisabled();
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
   });
 
-  test('renders dividers', async () => {
+  it('renders dividers', async () => {
     const divider = {
       id: 'NATIVE_FILTER_DIVIDER-1',
       type: 'DIVIDER',
@@ -296,58 +292,12 @@ describe('FilterBar', () => {
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
   });
 
-  test('create filter and apply it flow', async () => {
+  it('create filter and apply it flow', async () => {
     renderWrapper(openedBarProps, stateWithoutNativeFilters);
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
 
     await addFilterFlow();
 
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
-  });
-
-  test('should render without errors with proper state setup', () => {
-    const stateWithFilter = {
-      ...stateWithoutNativeFilters,
-      dashboardInfo: {
-        id: 1,
-      },
-      dataMask: {
-        'test-filter': {
-          id: 'test-filter',
-          filterState: { value: undefined },
-          extraFormData: {},
-        },
-      },
-      nativeFilters: {
-        filters: {
-          'test-filter': {
-            id: 'test-filter',
-            name: 'Test Filter',
-            filterType: 'filter_select',
-            targets: [{ datasetId: 1, column: { name: 'test_column' } }],
-            defaultDataMask: {
-              filterState: { value: undefined },
-              extraFormData: {},
-            },
-            controlValues: {
-              enableEmptyFilter: true,
-            },
-            cascadeParentIds: [],
-            scope: {
-              rootPath: ['ROOT_ID'],
-              excluded: [],
-            },
-            type: 'NATIVE_FILTER',
-            description: '',
-            chartsInScope: [],
-            tabsInScope: [],
-          },
-        },
-        filtersState: {},
-      },
-    };
-
-    const { container } = renderWrapper(openedBarProps, stateWithFilter);
-    expect(container).toBeInTheDocument();
   });
 });

@@ -44,7 +44,7 @@ from superset.utils import json
 
 if TYPE_CHECKING:
     from superset.models.core import Database
-    from superset.sql.parse import Table
+    from superset.sql_parse import Table
 
 _logger = logging.getLogger()
 
@@ -66,18 +66,6 @@ class GSheetsParametersSchema(Schema):
             "description": "Contents of GSheets JSON credentials.",
             "field_name": "service_account_info",
         },
-    )
-    oauth2_client_info = EncryptedString(
-        required=False,
-        metadata={
-            "description": "OAuth2 client information",
-            "default": {
-                "scope": " ".join(SCOPES),
-                "authorization_request_uri": "https://accounts.google.com/o/oauth2/v2/auth",
-                "token_request_uri": "https://oauth2.googleapis.com/token",
-            },
-        },
-        allow_none=True,
     )
 
 
@@ -130,23 +118,25 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
     oauth2_exception = UnauthenticatedError
 
     @classmethod
-    def impersonate_user(
+    def get_url_for_impersonation(
         cls,
-        database: Database,
-        username: str | None,
-        user_token: str | None,
         url: URL,
-        engine_kwargs: dict[str, Any],
-    ) -> tuple[URL, dict[str, Any]]:
+        impersonate_user: bool,
+        username: str | None,
+        access_token: str | None,
+    ) -> URL:
+        if not impersonate_user:
+            return url
+
         if username is not None:
             user = security_manager.find_user(username=username)
             if user and user.email:
                 url = url.update_query_dict({"subject": user.email})
 
-        if user_token:
-            url = url.update_query_dict({"access_token": user_token})
+        if access_token:
+            url = url.update_query_dict({"access_token": access_token})
 
-        return url, engine_kwargs
+        return url
 
     @classmethod
     def get_extra_table_metadata(
@@ -175,9 +165,6 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         _: GSheetsParametersType,
         encrypted_extra: None | (dict[str, Any]) = None,
     ) -> str:
-        if encrypted_extra and "oauth2_client_info" in encrypted_extra:
-            del encrypted_extra["oauth2_client_info"]
-
         return "gsheets://"
 
     @staticmethod
@@ -236,9 +223,9 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         # via parameters for validation
         parameters = properties.get("parameters", {})
         if parameters and parameters.get("catalog"):
-            table_catalog = parameters.get("catalog") or {}
+            table_catalog = parameters.get("catalog", {})
         else:
-            table_catalog = properties.get("catalog") or {}
+            table_catalog = properties.get("catalog", {})
 
         encrypted_credentials = parameters.get("service_account_info") or "{}"
 
@@ -246,6 +233,18 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         # at all other times they are a dict
         if isinstance(encrypted_credentials, str):
             encrypted_credentials = json.loads(encrypted_credentials)
+
+        if not table_catalog:
+            # Allowing users to submit empty catalogs
+            errors.append(
+                SupersetError(
+                    message="Sheet name is required",
+                    error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+                    level=ErrorLevel.WARNING,
+                    extra={"catalog": {"idx": 0, "name": True}},
+                ),
+            )
+            return errors
 
         # We need a subject in case domain wide delegation is set, otherwise the
         # check will fail. This means that the admin will be able to add sheets

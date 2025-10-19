@@ -17,12 +17,8 @@
  * under the License.
  */
 import { useSelector } from 'react-redux';
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-} from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
+import { render, screen } from 'spec/helpers/testing-library';
 import {
   DatasourceType,
   getChartControlPanelRegistry,
@@ -44,56 +40,51 @@ const FormDataMock = () => {
   return <div data-test="mock-formdata">{Object.keys(formData).join(':')}</div>;
 };
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ControlPanelsContainer', () => {
-  const defaultTableConfig = {
-    controlPanelSections: [
-      {
-        label: t('GROUP BY'),
-        description: t('Use this section if you want a query that aggregates'),
-        expanded: true,
-        controlSetRows: [
-          ['groupby'],
-          ['metrics'],
-          ['percent_metrics'],
-          ['timeseries_limit_metric', 'row_limit'],
-          ['include_time', 'order_desc'],
-        ],
-      },
-      {
-        label: t('NOT GROUPED BY'),
-        description: t('Use this section if you want to query atomic rows'),
-        expanded: true,
-        controlSetRows: [
-          ['all_columns'],
-          ['order_by_cols'],
-          ['row_limit', null],
-        ],
-      },
-      {
-        label: t('Query'),
-        expanded: true,
-        controlSetRows: [['adhoc_filters']],
-      },
-      {
-        label: t('Options'),
-        expanded: true,
-        controlSetRows: [
-          ['table_timestamp_format'],
-          ['page_length', null],
-          ['include_search', 'table_filter'],
-          ['align_pn', 'color_pn'],
-        ],
-      },
-    ],
-  };
-
-  beforeEach(() => {
-    getChartControlPanelRegistry().registerValue('table', defaultTableConfig);
-  });
-
-  afterEach(() => {
-    getChartControlPanelRegistry().remove('table');
+  beforeAll(() => {
+    getChartControlPanelRegistry().registerValue('table', {
+      controlPanelSections: [
+        {
+          label: t('GROUP BY'),
+          description: t(
+            'Use this section if you want a query that aggregates',
+          ),
+          expanded: true,
+          controlSetRows: [
+            ['groupby'],
+            ['metrics'],
+            ['percent_metrics'],
+            ['timeseries_limit_metric', 'row_limit'],
+            ['include_time', 'order_desc'],
+          ],
+        },
+        {
+          label: t('NOT GROUPED BY'),
+          description: t('Use this section if you want to query atomic rows'),
+          expanded: true,
+          controlSetRows: [
+            ['all_columns'],
+            ['order_by_cols'],
+            ['row_limit', null],
+          ],
+        },
+        {
+          label: t('Query'),
+          expanded: true,
+          controlSetRows: [['adhoc_filters']],
+        },
+        {
+          label: t('Options'),
+          expanded: true,
+          controlSetRows: [
+            ['table_timestamp_format'],
+            ['page_length', null],
+            ['include_search', 'table_filter'],
+            ['align_pn', 'color_pn'],
+          ],
+        },
+      ],
+    });
   });
 
   afterAll(() => {
@@ -120,22 +111,17 @@ describe('ControlPanelsContainer', () => {
     render(<ControlPanelsContainer {...getDefaultProps()} />, {
       useRedux: true,
     });
-    await waitFor(() => {
-      expect(
-        screen.getAllByTestId('collapsible-control-panel-header'),
-      ).toHaveLength(4);
-    });
+    expect(
+      await screen.findAllByTestId('collapsible-control-panel-header'),
+    ).toHaveLength(4);
     expect(screen.getByRole('tab', { name: /customize/i })).toBeInTheDocument();
     userEvent.click(screen.getByRole('tab', { name: /customize/i }));
-    await waitFor(() => {
-      expect(
-        screen.getAllByTestId('collapsible-control-panel-header'),
-      ).toHaveLength(5);
-    });
+    expect(
+      await screen.findAllByTestId('collapsible-control-panel-header'),
+    ).toHaveLength(5);
   });
 
   test('renders ControlPanelSections no Customize Tab', async () => {
-    getChartControlPanelRegistry().remove('table');
     getChartControlPanelRegistry().registerValue('table', {
       controlPanelSections: [
         {
@@ -163,15 +149,12 @@ describe('ControlPanelsContainer', () => {
       useRedux: true,
     });
     expect(screen.queryByText(/customize/i)).not.toBeInTheDocument();
-    await waitFor(() => {
-      expect(
-        screen.getAllByTestId('collapsible-control-panel-header'),
-      ).toHaveLength(2);
-    });
+    expect(
+      await screen.findAllByTestId('collapsible-control-panel-header'),
+    ).toHaveLength(2);
   });
 
   test('visibility of panels is correctly applied', async () => {
-    getChartControlPanelRegistry().remove('table');
     getChartControlPanelRegistry().registerValue('table', {
       controlPanelSections: [
         {
@@ -222,7 +205,6 @@ describe('ControlPanelsContainer', () => {
   });
 
   test('hidden state of controls is correctly applied', async () => {
-    getChartControlPanelRegistry().remove('table');
     getChartControlPanelRegistry().registerValue('table', {
       controlPanelSections: [
         {

@@ -16,13 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-} from 'spec/helpers/testing-library';
-import { CopyToClipboard } from '.';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
+import CopyToClipboard from '.';
 
 test('renders with default props', () => {
   const text = 'Text';

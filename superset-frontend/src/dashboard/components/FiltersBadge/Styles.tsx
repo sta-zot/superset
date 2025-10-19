@@ -21,13 +21,13 @@ import { css, styled } from '@superset-ui/core';
 export const Pill = styled.div`
   ${({ theme }) => css`
     display: flex;
-    color: ${theme.colorBgBase};
-    background: ${theme.colorText};
+    color: ${theme.colors.grayscale.light5};
+    background: ${theme.colors.grayscale.base};
     border-radius: 1em;
     vertical-align: text-top;
-    padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
-    font-size: ${theme.fontSize}px;
-    font-weight: ${theme.fontWeightStrong};
+    padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px;
+    font-size: ${theme.typography.sizes.m}px;
+    font-weight: ${theme.typography.weights.bold};
     min-width: 1em;
     min-height: 1em;
     line-height: 1em;
@@ -36,7 +36,7 @@ export const Pill = styled.div`
 
     svg {
       position: relative;
-      color: ${theme.colorBgBase};
+      color: ${theme.colors.grayscale.light5};
       width: 1em;
       height: 1em;
       display: inline-block;
@@ -45,13 +45,13 @@ export const Pill = styled.div`
 
     &:hover {
       cursor: pointer;
-      background: ${theme.colorText};
+      background: ${theme.colors.grayscale.dark1};
     }
 
     &.has-cross-filters {
-      background: ${theme.colorPrimary};
+      background: ${theme.colors.primary.base};
       &:hover {
-        background: ${theme.colorPrimaryText};
+        background: ${theme.colors.primary.dark1};
       }
     }
   `}
@@ -59,15 +59,15 @@ export const Pill = styled.div`
 
 export const SectionName = styled.span`
   ${({ theme }) => css`
-    font-weight: ${theme.fontWeightStrong};
+    font-weight: ${theme.typography.weights.bold};
   `}
 `;
 export const FilterName = styled.span`
   ${({ theme }) => css`
-    padding-right: ${theme.sizeUnit}px;
+    padding-right: ${theme.gridUnit}px;
     font-style: italic;
     & > * {
-      margin-right: ${theme.sizeUnit}px;
+      margin-right: ${theme.gridUnit}px;
     }
   `}
 `;
@@ -82,16 +82,15 @@ export const FilterItem = styled.button`
     background: none;
     outline: none;
     width: 100%;
-    color: inherit;
 
     &::-moz-focus-inner {
       border: 0;
     }
 
     & i svg {
-      opacity: 35%;
-      margin-right: ${theme.sizeUnit}px;
-      transition: opacity ease-in-out ${theme.motionDurationMid};
+      opacity: ${theme.opacity.mediumLight};
+      margin-right: ${theme.gridUnit}px;
+      transition: opacity ease-in-out ${theme.transitionTiming};
     }
 
     &:hover i svg,
@@ -103,10 +102,9 @@ export const FilterItem = styled.button`
 
 export const FiltersContainer = styled.div`
   ${({ theme }) => css`
-    max-height: 60vh;
-    margin-top: ${theme.sizeUnit}px;
+    margin-top: ${theme.gridUnit}px;
     &:not(:last-child) {
-      padding-bottom: ${theme.sizeUnit * 3}px;
+      padding-bottom: ${theme.gridUnit * 3}px;
     }
   `}
 `;
@@ -117,7 +115,7 @@ export const FiltersDetailsContainer = styled.div`
     max-width: 300px;
     overflow-x: hidden;
 
-    color: ${theme.colorText};
+    color: ${theme.colors.grayscale.light5};
   `}
 `;
 
@@ -131,7 +129,7 @@ export const Separator = styled.div`
   ${({ theme }) => css`
     width: 100%;
     height: 1px;
-    background-color: ${theme.colorBorderSecondary};
-    margin: ${theme.sizeUnit * 4}px 0;
+    background-color: ${theme.colors.grayscale.light1};
+    margin: ${theme.gridUnit * 4}px 0;
   `}
 `;

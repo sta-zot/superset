@@ -20,11 +20,11 @@ import configureStore from 'redux-mock-store';
 import { DatasourceType } from '@superset-ui/core';
 import {
   fireEvent,
-  render,
-  screen,
-  userEvent,
   waitFor,
+  screen,
+  render,
 } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import DatasourceControl, {
   getDatasourceTitle,
 } from 'src/explore/components/controls/DatasourceControl';
@@ -64,7 +64,6 @@ const defaultProps = {
   },
 };
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasourceControl', () => {
   const setup = (overrideProps = {}) => {
     const mockStore = configureStore([]);
@@ -84,17 +83,17 @@ describe('DatasourceControl', () => {
     };
   };
 
-  test('should not render Modal', () => {
+  it('should not render Modal', () => {
     setup();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  test('should not render ChangeDatasourceModal', () => {
+  it('should not render ChangeDatasourceModal', () => {
     setup();
     expect(screen.queryByTestId('Swap dataset-modal')).not.toBeInTheDocument();
   });
 
-  test('show or hide Edit Datasource option', async () => {
+  it('show or hide Edit Datasource option', async () => {
     const {
       rendered: { container, rerender },
       store,
@@ -103,15 +102,9 @@ describe('DatasourceControl', () => {
     expect(
       container.querySelector('[data-test="datasource-menu-trigger"]'),
     ).toBeInTheDocument();
-    userEvent.click(screen.getByLabelText('more'));
+    userEvent.click(screen.getByLabelText('more-vert'));
     await waitFor(() => {
       expect(screen.queryAllByRole('menuitem')).toHaveLength(3);
-    });
-
-    // Close the menu
-    userEvent.click(document.body);
-    await waitFor(() => {
-      expect(screen.queryAllByRole('menuitem')).toHaveLength(0);
     });
 
     rerender(<DatasourceControl {...{ ...props, isEditable: false }} />, {
@@ -122,15 +115,15 @@ describe('DatasourceControl', () => {
     expect(
       container.querySelector('[data-test="datasource-menu-trigger"]'),
     ).toBeInTheDocument();
-    userEvent.click(screen.getByLabelText('more'));
+    userEvent.click(screen.getByLabelText('more-vert'));
     await waitFor(() => {
       expect(screen.queryAllByRole('menuitem')).toHaveLength(2);
     });
   });
 
-  test('should render health check message', async () => {
+  it('should render health check message', async () => {
     setup();
-    const modalTrigger = screen.getByLabelText('warning');
+    const modalTrigger = screen.getByLabelText('alert-solid');
     expect(modalTrigger).toBeInTheDocument();
 
     // Hover the modal so healthcheck message can show up
@@ -142,7 +135,7 @@ describe('DatasourceControl', () => {
     });
   });
 
-  test('Gets Datasource Title', () => {
+  it('Gets Datasource Title', () => {
     const sql = 'This is the sql';
     const name = 'this is a name';
     const emptyResult = '';

@@ -114,25 +114,25 @@ def port_translate_filter_func(  # noqa: C901
     return_expression: Any
     if operator in (FilterOperator.IN, FilterOperator.NOT_IN):
         vals_list = itertools.chain.from_iterable(values)
-        if operator == FilterOperator.IN:
+        if operator == FilterOperator.IN.value:
             cond = col.in_(vals_list)
-        elif operator == FilterOperator.NOT_IN:
+        elif operator == FilterOperator.NOT_IN.value:
             cond = ~(col.in_(vals_list))
         return_expression = cond
     if len(values) == 1:
         value = values[0]
         value.sort()
-        if operator == FilterOperator.EQUALS:
+        if operator == FilterOperator.EQUALS.value:
             return_expression = col.in_(value)
-        if operator == FilterOperator.GREATER_THAN_OR_EQUALS:
+        if operator == FilterOperator.GREATER_THAN_OR_EQUALS.value:
             return_expression = col >= value[0]
-        if operator == FilterOperator.GREATER_THAN:
+        if operator == FilterOperator.GREATER_THAN.value:
             return_expression = col > value[0]
-        if operator == FilterOperator.LESS_THAN:
+        if operator == FilterOperator.LESS_THAN.value:
             return_expression = col < value[-1]
-        if operator == FilterOperator.LESS_THAN_OR_EQUALS:
+        if operator == FilterOperator.LESS_THAN_OR_EQUALS.value:
             return_expression = col <= value[-1]
-        if operator == FilterOperator.NOT_EQUALS:
+        if operator == FilterOperator.NOT_EQUALS.value:
             return_expression = ~col.in_(value)
     return return_expression
 

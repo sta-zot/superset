@@ -23,13 +23,14 @@ import time
 from typing import Any, TYPE_CHECKING
 
 import requests
-from flask import copy_current_request_context, ctx, current_app as app, Flask, g
+from flask import copy_current_request_context, ctx, current_app, Flask, g
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
 
 from superset import db
-from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
+from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY, USER_AGENT
+from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, convert_inspector_columns
 from superset.db_engine_specs.exceptions import (
     SupersetDBAPIConnectionError,
@@ -39,10 +40,9 @@ from superset.db_engine_specs.exceptions import (
 )
 from superset.db_engine_specs.presto import PrestoBaseEngineSpec
 from superset.models.sql_lab import Query
-from superset.sql.parse import Table
+from superset.sql_parse import Table
 from superset.superset_typing import ResultSetColumnType
-from superset.utils import json
-from superset.utils.core import create_ssl_cert_file, get_user_agent, QuerySource
+from superset.utils import core as utils, json
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -130,27 +130,55 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         return metadata
 
     @classmethod
-    def impersonate_user(
+    def update_impersonation_config(  # pylint: disable=too-many-arguments
         cls,
         database: Database,
+        connect_args: dict[str, Any],
+        uri: str,
         username: str | None,
-        user_token: str | None,
-        url: URL,
-        engine_kwargs: dict[str, Any],
-    ) -> tuple[URL, dict[str, Any]]:
-        if username is None:
-            return url, engine_kwargs
-
+        access_token: str | None,
+    ) -> None:
+        """
+        Update a configuration dictionary
+        that can set the correct properties for impersonating users
+        :param database: the Database object
+        :param connect_args: config to be updated
+        :param uri: URI string
+        :param username: Effective username
+        :param access_token: Personal access token for OAuth2
+        :return: None
+        """
+        url = make_url_safe(uri)
         backend_name = url.get_backend_name()
-        connect_args = engine_kwargs.setdefault("connect_args", {})
-        if backend_name == "trino":
+
+        # Must be Trino connection, enable impersonation, and set optional param
+        # auth=LDAP|KERBEROS
+        # Set principal_username=$effective_username
+        if backend_name == "trino" and username is not None:
             connect_args["user"] = username
-            if user_token is not None:
+            if access_token is not None:
                 http_session = requests.Session()
-                http_session.headers.update({"Authorization": f"Bearer {user_token}"})
+                http_session.headers.update({"Authorization": f"Bearer {access_token}"})
                 connect_args["http_session"] = http_session
 
-        return url, engine_kwargs
+    @classmethod
+    def get_url_for_impersonation(
+        cls,
+        url: URL,
+        impersonate_user: bool,
+        username: str | None,
+        access_token: str | None,
+    ) -> URL:
+        """
+        Return a modified URL with the username set.
+
+        :param access_token: Personal access token for OAuth2
+        :param url: SQLAlchemy URL object
+        :param impersonate_user: Flag indicating if impersonation is enabled
+        :param username: Effective username
+        """
+        # Do nothing and let update_impersonation_config take care of impersonation
+        return url
 
     @classmethod
     def get_allow_cost_estimate(cls, extra: dict[str, Any]) -> bool:
@@ -249,7 +277,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             args=(
                 execute_result,
                 execute_event,
-                app._get_current_object(),  # pylint: disable=protected-access
+                current_app._get_current_object(),  # pylint: disable=protected-access
                 g._get_current_object(),  # pylint: disable=protected-access
             ),
         )
@@ -302,27 +330,23 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         return True
 
     @staticmethod
-    def get_extra_params(
-        database: Database, source: QuerySource | None = None
-    ) -> dict[str, Any]:
+    def get_extra_params(database: Database) -> dict[str, Any]:
         """
         Some databases require adding elements to connection parameters,
         like passing certificates to `extra`. This can be done here.
 
         :param database: database instance from which to extract extras
-        :param source: in which context is the connection needed
         :raises CertificateException: If certificate is not valid/unparseable
         """
-        extra: dict[str, Any] = BaseEngineSpec.get_extra_params(database, source)
+        extra: dict[str, Any] = BaseEngineSpec.get_extra_params(database)
         engine_params: dict[str, Any] = extra.setdefault("engine_params", {})
         connect_args: dict[str, Any] = engine_params.setdefault("connect_args", {})
-        user_agent = get_user_agent(database, source)
 
-        connect_args.setdefault("source", user_agent)
+        connect_args.setdefault("source", USER_AGENT)
 
         if database.server_cert:
             connect_args["http_scheme"] = "https"
-            connect_args["verify"] = create_ssl_cert_file(database.server_cert)
+            connect_args["verify"] = utils.create_ssl_cert_file(database.server_cert)
 
         return extra
 
@@ -352,9 +376,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             elif auth_method == "jwt":
                 from trino.auth import JWTAuthentication as trino_auth  # noqa
             else:
-                allowed_extra_auths = app.config["ALLOWED_EXTRA_AUTHENTICATIONS"].get(
-                    "trino", {}
-                )
+                allowed_extra_auths = current_app.config[
+                    "ALLOWED_EXTRA_AUTHENTICATIONS"
+                ].get("trino", {})
                 if auth_method in allowed_extra_auths:
                     trino_auth = allowed_extra_auths.get(auth_method)
                 else:

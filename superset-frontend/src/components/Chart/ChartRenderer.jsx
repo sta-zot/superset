@@ -30,7 +30,7 @@ import {
   FeatureFlag,
 } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
-import { EmptyState } from '@superset-ui/core/components';
+import { EmptyState } from 'src/components/EmptyState';
 import { ChartSource } from 'src/types/ChartSource';
 import ChartContextMenu from './ChartContextMenu/ChartContextMenu';
 
@@ -151,23 +151,6 @@ class ChartRenderer extends Component {
         this.mutableQueriesResponse = cloneDeep(nextProps.queriesResponse);
       }
 
-      // Check if any matrixify-related properties have changed
-      const hasMatrixifyChanges = () => {
-        const isMatrixifyEnabled =
-          nextProps.formData.matrixify_enable_vertical_layout === true ||
-          nextProps.formData.matrixify_enable_horizontal_layout === true;
-        if (!isMatrixifyEnabled) return false;
-
-        // Check all matrixify-related properties
-        const matrixifyKeys = Object.keys(nextProps.formData).filter(key =>
-          key.startsWith('matrixify_'),
-        );
-
-        return matrixifyKeys.some(
-          key => !isEqual(nextProps.formData[key], this.props.formData[key]),
-        );
-      };
-
       return (
         this.hasQueryResponseChange ||
         !isEqual(nextProps.datasource, this.props.datasource) ||
@@ -181,12 +164,8 @@ class ChartRenderer extends Component {
         nextProps.labelsColorMap !== this.props.labelsColorMap ||
         nextProps.formData.color_scheme !== this.props.formData.color_scheme ||
         nextProps.formData.stack !== this.props.formData.stack ||
-        nextProps.formData.subcategories !==
-          this.props.formData.subcategories ||
         nextProps.cacheBusterProp !== this.props.cacheBusterProp ||
-        nextProps.emitCrossFilters !== this.props.emitCrossFilters ||
-        nextProps.postTransformProps !== this.props.postTransformProps ||
-        hasMatrixifyChanges()
+        nextProps.emitCrossFilters !== this.props.emitCrossFilters
       );
     }
     return false;
@@ -344,7 +323,7 @@ class ChartRenderer extends Component {
       );
     } else {
       noResultsComponent = (
-        <EmptyState title={noResultTitle} image={noResultImage} size="small" />
+        <EmptyState size="small" title={noResultTitle} image={noResultImage} />
       );
     }
 
@@ -355,10 +334,6 @@ class ChartRenderer extends Component {
       ?.behaviors.find(behavior => behavior === Behavior.DrillToDetail)
       ? { inContextMenu: this.state.inContextMenu }
       : {};
-    // By pass no result component when server pagination is enabled & the table has a backend search query
-    const bypassNoResult = !(
-      formData?.server_pagination && (ownState?.searchText?.length || 0) > 0
-    );
 
     return (
       <>
@@ -399,7 +374,6 @@ class ChartRenderer extends Component {
             postTransformProps={postTransformProps}
             emitCrossFilters={emitCrossFilters}
             legendState={this.state.legendState}
-            enableNoResults={bypassNoResult}
             legendIndex={this.state.legendIndex}
             {...drillToDetailProps}
           />

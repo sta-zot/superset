@@ -39,9 +39,8 @@ beforeEach(() => {
   });
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('useIsFilterInScope', () => {
-  test('should return true for dividers (always in scope)', () => {
+  it('should return true for dividers (always in scope)', () => {
     const divider: Divider = {
       id: 'divider_1',
       type: NativeFilterType.Divider,
@@ -53,7 +52,7 @@ describe('useIsFilterInScope', () => {
     expect(result.current(divider)).toBe(true);
   });
 
-  test('should return true for filters with charts in active tabs', () => {
+  it('should return true for filters with charts in active tabs', () => {
     const filter: Filter = {
       id: 'filter_1',
       name: 'Test Filter',
@@ -72,7 +71,7 @@ describe('useIsFilterInScope', () => {
     expect(result.current(filter)).toBe(true);
   });
 
-  test('should return false for filters with inactive rootPath', () => {
+  it('should return false for filters with inactive rootPath', () => {
     const filter: Filter = {
       id: 'filter_3',
       name: 'Test Filter 3',
@@ -91,9 +90,8 @@ describe('useIsFilterInScope', () => {
   });
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('useSelectFiltersInScope', () => {
-  test('should return all filters in scope when no tabs exist', () => {
+  it('should return all filters in scope when no tabs exist', () => {
     const filters: Filter[] = [
       {
         id: 'filter_1',

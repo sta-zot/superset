@@ -24,15 +24,7 @@ import { useCrossFiltersScopingModal } from './useCrossFiltersScopingModal';
 
 test('Renders modal after calling method open', async () => {
   const { result } = renderHook(() => useCrossFiltersScopingModal(), {
-    wrapper: createWrapper({
-      initialState: {
-        dashboardLayout: {
-          present: {},
-          past: [],
-          future: [],
-        },
-      },
-    }),
+    wrapper: createWrapper(),
   });
 
   const [openModal, Modal] = result.current;
@@ -42,13 +34,6 @@ test('Renders modal after calling method open', async () => {
 
   const { getByText } = render(result.current[1] as ReactElement, {
     useRedux: true,
-    initialState: {
-      dashboardLayout: {
-        present: {},
-        past: [],
-        future: [],
-      },
-    },
   });
 
   expect(getByText('Cross-filtering scoping')).toBeInTheDocument();

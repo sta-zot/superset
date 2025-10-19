@@ -19,10 +19,9 @@ from __future__ import annotations
 import logging
 from typing import Any, cast
 
-from flask import current_app as app
 from flask_babel import gettext as __
 
-from superset import db, results_backend, results_backend_use_msgpack
+from superset import app, db, results_backend, results_backend_use_msgpack
 from superset.commands.base import BaseCommand
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SerializationError, SupersetErrorException
@@ -31,6 +30,10 @@ from superset.sqllab.utils import apply_display_max_row_configuration_if_require
 from superset.utils import core as utils
 from superset.utils.dates import now_as_float
 from superset.views.utils import _deserialize_results_payload
+
+config = app.config
+SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
+stats_logger = config["STATS_LOGGER"]
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +64,7 @@ class SqlExecutionResultsCommand(BaseCommand):
 
         read_from_results_backend_start = now_as_float()
         self._blob = results_backend.get(self._key)
-        app.config["STATS_LOGGER"].timing(
+        stats_logger.timing(
             "sqllab.query.results_backend_read",
             now_as_float() - read_from_results_backend_start,
         )

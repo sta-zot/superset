@@ -24,6 +24,7 @@ import {
   DataRecordValue,
   DTTM_ALIAS,
   ensureIsArray,
+  GenericDataType,
   LegendState,
   normalizeTimestamp,
   NumberFormats,
@@ -32,7 +33,6 @@ import {
   TimeFormatter,
   ValueFormatter,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
 import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
 import { format } from 'echarts/core';
 import type { LegendComponentOption } from 'echarts/components';
@@ -272,7 +272,6 @@ export function extractSeries(
     sortSeriesAscending?: boolean;
     xAxisSortSeries?: SortSeriesType;
     xAxisSortSeriesAscending?: boolean;
-    xAxisType?: AxisType;
   } = {},
 ): [SeriesOption[], number[], number | undefined] {
   const {
@@ -287,15 +286,11 @@ export function extractSeries(
     sortSeriesAscending,
     xAxisSortSeries,
     xAxisSortSeriesAscending,
-    xAxisType,
   } = opts;
   if (data.length === 0) return [[], [], undefined];
   const rows: DataRecord[] = data.map(datum => ({
     ...datum,
-    [xAxis]:
-      datum[xAxis] === null && xAxisType === AxisType.Category
-        ? NULL_STRING
-        : datum[xAxis],
+    [xAxis]: datum[xAxis],
   }));
   const sortedSeries = sortAndFilterSeries(
     rows,
@@ -449,10 +444,10 @@ export function getLegendProps(
     selected: legendState,
     selector: ['all', 'inverse'],
     selectorLabel: {
-      fontFamily: theme.fontFamily,
-      fontSize: theme.fontSizeSM,
-      color: theme.colorText,
-      borderColor: theme.colorBorder,
+      fontFamily: theme.typography.families.sansSerif,
+      fontSize: theme.typography.sizes.s,
+      color: theme.colors.grayscale.base,
+      borderColor: theme.colors.grayscale.base,
     },
   };
   const MIN_LEGEND_WIDTH = 0;
@@ -689,21 +684,4 @@ export function extractTooltipKeys(
     return forecastValue.map(s => s[TOOLTIP_SERIES_KEY]);
   }
   return [forecastValue[0][TOOLTIP_SERIES_KEY]];
-}
-
-export function groupData(data: DataRecord[], by?: string | null) {
-  const seriesMap: Map<DataRecordValue | undefined, DataRecord[]> = new Map();
-  if (by) {
-    data.forEach(datum => {
-      const value = seriesMap.get(datum[by]);
-      if (value) {
-        value.push(datum);
-      } else {
-        seriesMap.set(datum[by], [datum]);
-      }
-    });
-  } else {
-    seriesMap.set(undefined, data);
-  }
-  return seriesMap;
 }

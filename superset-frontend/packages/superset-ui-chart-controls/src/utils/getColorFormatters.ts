@@ -32,18 +32,13 @@ const MIN_OPACITY_BOUNDED = 0.05;
 const MIN_OPACITY_UNBOUNDED = 0;
 const MAX_OPACITY = 1;
 export const getOpacity = (
-  value: number | string,
-  cutoffPoint: number | string,
-  extremeValue: number | string,
+  value: number,
+  cutoffPoint: number,
+  extremeValue: number,
   minOpacity = MIN_OPACITY_BOUNDED,
   maxOpacity = MAX_OPACITY,
 ) => {
-  if (
-    extremeValue === cutoffPoint ||
-    typeof cutoffPoint !== 'number' ||
-    typeof extremeValue !== 'number' ||
-    typeof value !== 'number'
-  ) {
+  if (extremeValue === cutoffPoint) {
     return maxOpacity;
   }
   return Math.min(
@@ -66,16 +61,16 @@ export const getColorFunction = (
     targetValueRight,
     colorScheme,
   }: ConditionalFormattingConfig,
-  columnValues: number[] | string[],
+  columnValues: number[],
   alpha?: boolean,
 ) => {
   let minOpacity = MIN_OPACITY_BOUNDED;
   const maxOpacity = MAX_OPACITY;
 
   let comparatorFunction: (
-    value: number | string,
-    allValues: number[] | string[],
-  ) => false | { cutoffValue: number | string; extremeValue: number | string };
+    value: number,
+    allValues: number[],
+  ) => false | { cutoffValue: number; extremeValue: number };
   if (operator === undefined || colorScheme === undefined) {
     return () => undefined;
   }
@@ -95,10 +90,7 @@ export const getColorFunction = (
   switch (operator) {
     case Comparator.None:
       minOpacity = MIN_OPACITY_UNBOUNDED;
-      comparatorFunction = (value: number | string, allValues: number[]) => {
-        if (typeof value !== 'number') {
-          return { cutoffValue: value!, extremeValue: value! };
-        }
+      comparatorFunction = (value: number, allValues: number[]) => {
         const cutoffValue = Math.min(...allValues);
         const extremeValue = Math.max(...allValues);
         return value >= cutoffValue && value <= extremeValue
@@ -108,65 +100,49 @@ export const getColorFunction = (
       break;
     case Comparator.GreaterThan:
       comparatorFunction = (value: number, allValues: number[]) =>
-        typeof targetValue === 'number' && value > targetValue!
-          ? {
-              cutoffValue: targetValue!,
-              extremeValue: Math.max(...allValues),
-            }
+        value > targetValue!
+          ? { cutoffValue: targetValue!, extremeValue: Math.max(...allValues) }
           : false;
       break;
     case Comparator.LessThan:
       comparatorFunction = (value: number, allValues: number[]) =>
-        typeof targetValue === 'number' && value < targetValue!
-          ? {
-              cutoffValue: targetValue!,
-              extremeValue: Math.min(...allValues),
-            }
+        value < targetValue!
+          ? { cutoffValue: targetValue!, extremeValue: Math.min(...allValues) }
           : false;
       break;
     case Comparator.GreaterOrEqual:
       comparatorFunction = (value: number, allValues: number[]) =>
-        typeof targetValue === 'number' && value >= targetValue!
-          ? {
-              cutoffValue: targetValue!,
-              extremeValue: Math.max(...allValues),
-            }
+        value >= targetValue!
+          ? { cutoffValue: targetValue!, extremeValue: Math.max(...allValues) }
           : false;
       break;
     case Comparator.LessOrEqual:
       comparatorFunction = (value: number, allValues: number[]) =>
-        typeof targetValue === 'number' && value <= targetValue!
-          ? {
-              cutoffValue: targetValue!,
-              extremeValue: Math.min(...allValues),
-            }
+        value <= targetValue!
+          ? { cutoffValue: targetValue!, extremeValue: Math.min(...allValues) }
           : false;
       break;
     case Comparator.Equal:
-      comparatorFunction = (value: number | string) =>
+      comparatorFunction = (value: number) =>
         value === targetValue!
           ? { cutoffValue: targetValue!, extremeValue: targetValue! }
           : false;
       break;
     case Comparator.NotEqual:
       comparatorFunction = (value: number, allValues: number[]) => {
-        if (typeof targetValue === 'number') {
-          if (value === targetValue!) {
-            return false;
-          }
-          const max = Math.max(...allValues);
-          const min = Math.min(...allValues);
-          return {
-            cutoffValue: targetValue!,
-            extremeValue:
-              Math.abs(targetValue! - min) > Math.abs(max - targetValue!)
-                ? min
-                : max,
-          };
+        if (value === targetValue!) {
+          return false;
         }
-        return false;
+        const max = Math.max(...allValues);
+        const min = Math.min(...allValues);
+        return {
+          cutoffValue: targetValue!,
+          extremeValue:
+            Math.abs(targetValue! - min) > Math.abs(max - targetValue!)
+              ? min
+              : max,
+        };
       };
-
       break;
     case Comparator.Between:
       comparatorFunction = (value: number) =>
@@ -192,38 +168,12 @@ export const getColorFunction = (
           ? { cutoffValue: targetValueLeft!, extremeValue: targetValueRight! }
           : false;
       break;
-    case Comparator.BeginsWith:
-      comparatorFunction = (value: string) =>
-        isString(value) && value?.startsWith(targetValue as string)
-          ? { cutoffValue: targetValue!, extremeValue: targetValue! }
-          : false;
-      break;
-    case Comparator.EndsWith:
-      comparatorFunction = (value: string) =>
-        isString(value) && value?.endsWith(targetValue as string)
-          ? { cutoffValue: targetValue!, extremeValue: targetValue! }
-          : false;
-      break;
-    case Comparator.Containing:
-      comparatorFunction = (value: string) =>
-        isString(value) &&
-        value?.toLowerCase().includes((targetValue as string).toLowerCase())
-          ? { cutoffValue: targetValue!, extremeValue: targetValue! }
-          : false;
-      break;
-    case Comparator.NotContaining:
-      comparatorFunction = (value: string) =>
-        isString(value) &&
-        !value?.toLowerCase().includes((targetValue as string).toLowerCase())
-          ? { cutoffValue: targetValue!, extremeValue: targetValue! }
-          : false;
-      break;
     default:
       comparatorFunction = () => false;
       break;
   }
 
-  return (value: number | string) => {
+  return (value: number) => {
     const compareResult = comparatorFunction(value, columnValues);
     if (compareResult === false) return undefined;
     const { cutoffValue, extremeValue } = compareResult;
@@ -268,7 +218,3 @@ export const getColorFormatters = memoizeOne(
       [],
     ) ?? [],
 );
-
-function isString(value: unknown) {
-  return typeof value === 'string';
-}

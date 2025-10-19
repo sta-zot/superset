@@ -22,7 +22,7 @@ from enum import Enum
 
 from superset.utils.backports import StrEnum
 
-DEFAULT_USER_AGENT = "Apache Superset"
+USER_AGENT = "Apache Superset"
 
 NULL_STRING = "<NULL>"
 EMPTY_STRING = "<empty string>"
@@ -173,7 +173,6 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "slack_channels": "write",
     "put_filters": "write",
     "put_colors": "write",
-    "sync_permissions": "write",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {
@@ -243,7 +242,3 @@ class CacheRegion(StrEnum):
     DEFAULT = "default"
     DATA = "data"
     THUMBNAIL = "thumbnail"
-
-
-# Cache timeout constants
-CACHE_DISABLED_TIMEOUT = -1  # Special value indicating no caching should occur

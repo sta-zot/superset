@@ -17,7 +17,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { GenericDataType } from '@apache-superset/core/api/core';
 import { DatasourceType } from './Datasource';
 import { BinaryOperator, SetOperator, UnaryOperator } from './Operator';
 import { AppliedTimeExtras, TimeRange } from './Time';
@@ -32,7 +31,7 @@ import { Maybe } from '../../types';
 import { PostProcessingRule } from './PostProcessing';
 import { JsonObject } from '../../connection';
 import { TimeGranularity } from '../../time-format';
-import { DataRecordValue } from './QueryResponse';
+import { GenericDataType, DataRecordValue } from './QueryResponse';
 
 export type BaseQueryObjectFilterClause = {
   col: QueryFormColumn;
@@ -72,8 +71,6 @@ export type QueryObjectExtras = Partial<{
   where?: string;
   /** Instant Time Comparison */
   instant_time_comparison_range?: string;
-
-  time_compare?: string;
 }>;
 
 export type ResidualQueryObjectData = {

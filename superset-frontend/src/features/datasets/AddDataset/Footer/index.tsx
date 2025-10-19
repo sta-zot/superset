@@ -17,14 +17,8 @@
  * under the License.
  */
 import { useHistory } from 'react-router-dom';
-import {
-  Button,
-  DropdownButton,
-  Menu,
-  Flex,
-} from '@superset-ui/core/components';
-import { t, useTheme } from '@superset-ui/core';
-import { Icons } from '@superset-ui/core/components/Icons';
+import Button from 'src/components/Button';
+import { t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { logEvent } from 'src/logger/actions';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -61,7 +55,6 @@ function Footer({
   datasets,
 }: FooterProps) {
   const history = useHistory();
-  const theme = useTheme();
   const { createResource } = useSingleViewResource<Partial<DatasetObject>>(
     'dataset',
     t('dataset'),
@@ -92,7 +85,7 @@ function Footer({
 
   const tooltipText = t('Select a database table.');
 
-  const onSave = (createChart: boolean = true) => {
+  const onSave = () => {
     if (datasetObject) {
       const data = {
         database: datasetObject.db?.id,
@@ -107,61 +100,30 @@ function Footer({
         if (typeof response === 'number') {
           logEvent(LOG_ACTIONS_DATASET_CREATION_SUCCESS, datasetObject);
           // When a dataset is created the response we get is its ID number
-          if (createChart) {
-            history.push(`/chart/add/?dataset=${datasetObject.table_name}`);
-          } else {
-            history.push('/tablemodelview/list/');
-          }
+          history.push(`/chart/add/?dataset=${datasetObject.table_name}`);
         }
       });
     }
   };
 
-  const onSaveOnly = () => {
-    onSave(false);
-  };
-
-  const CREATE_DATASET_TEXT = t('Create and explore dataset');
-  const CREATE_DATASET_ONLY_TEXT = t('Create dataset');
+  const CREATE_DATASET_TEXT = t('Create dataset and create chart');
   const disabledCheck =
     !datasetObject?.table_name ||
     !hasColumns ||
     datasets?.includes(datasetObject?.table_name);
 
-  const dropdownMenu = (
-    <Menu
-      items={[
-        {
-          key: 'create-only',
-          onClick: onSaveOnly,
-          label: CREATE_DATASET_ONLY_TEXT,
-        },
-      ]}
-    />
-  );
-
   return (
-    <Flex align="center" justify="flex-end" gap="8px">
-      <Button buttonStyle="secondary" onClick={cancelButtonOnClick}>
-        {t('Cancel')}
-      </Button>
-      <DropdownButton
-        type="primary"
+    <>
+      <Button onClick={cancelButtonOnClick}>{t('Cancel')}</Button>
+      <Button
+        buttonStyle="primary"
         disabled={disabledCheck}
         tooltip={!datasetObject?.table_name ? tooltipText : undefined}
-        onClick={() => onSave(true)}
-        popupRender={() => dropdownMenu}
-        icon={
-          <Icons.DownOutlined
-            iconSize="xs"
-            iconColor={theme.colorTextLightSolid}
-          />
-        }
-        trigger={['click']}
+        onClick={onSave}
       >
         {CREATE_DATASET_TEXT}
-      </DropdownButton>
-    </Flex>
+      </Button>
+    </>
   );
 }
 

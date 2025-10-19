@@ -22,14 +22,11 @@ import timeGrainSqlaAnimationOverrides, {
   columnChoices,
   PRIMARY_COLOR,
 } from '../../utilities/controls';
-import {
-  COLOR_SCHEME_TYPES,
-  formatSelectOptions,
-  isColorSchemeTypeVisible,
-} from '../../utilities/utils';
+import { formatSelectOptions } from '../../utilities/utils';
 import {
   filterNulls,
   autozoom,
+  dimension,
   jsColumns,
   jsDataMutator,
   jsTooltip,
@@ -38,11 +35,6 @@ import {
   legendPosition,
   viewport,
   mapboxStyle,
-  tooltipContents,
-  tooltipTemplate,
-  deckGLCategoricalColor,
-  deckGLCategoricalColorSchemeSelect,
-  deckGLCategoricalColorSchemeTypeSelect,
 } from '../../utilities/Shared_DeckGL';
 
 const config: ControlPanelConfig = {
@@ -79,8 +71,6 @@ const config: ControlPanelConfig = {
         ],
         ['row_limit', filterNulls],
         ['adhoc_filters'],
-        [tooltipContents],
-        [tooltipTemplate],
       ],
     },
     {
@@ -91,37 +81,7 @@ const config: ControlPanelConfig = {
       label: t('Arc'),
       controlSetRows: [
         [
-          {
-            name: 'color_scheme_type',
-            config: {
-              ...deckGLCategoricalColorSchemeTypeSelect.config,
-              choices: [
-                [COLOR_SCHEME_TYPES.fixed_color, t('Fixed color')],
-                [
-                  COLOR_SCHEME_TYPES.categorical_palette,
-                  t('Categorical palette'),
-                ],
-              ],
-              default: COLOR_SCHEME_TYPES.fixed_color,
-            },
-          },
-        ],
-        [
-          {
-            name: 'color_picker',
-            config: {
-              label: t('Source Color'),
-              description: t('Color of the source location'),
-              type: 'ColorPickerControl',
-              default: PRIMARY_COLOR,
-              renderTrigger: true,
-              visibility: ({ controls }) =>
-                isColorSchemeTypeVisible(
-                  controls,
-                  COLOR_SCHEME_TYPES.fixed_color,
-                ),
-            },
-          },
+          'color_picker',
           {
             name: 'target_color_picker',
             config: {
@@ -130,16 +90,22 @@ const config: ControlPanelConfig = {
               type: 'ColorPickerControl',
               default: PRIMARY_COLOR,
               renderTrigger: true,
-              visibility: ({ controls }) =>
-                isColorSchemeTypeVisible(
-                  controls,
-                  COLOR_SCHEME_TYPES.fixed_color,
-                ),
             },
           },
         ],
-        [deckGLCategoricalColor],
-        [deckGLCategoricalColorSchemeSelect],
+        [
+          {
+            name: dimension.name,
+            config: {
+              ...dimension.config,
+              label: t('Categorical Color'),
+              description: t(
+                'Pick a dimension from which categorical colors are defined',
+              ),
+            },
+          },
+          'color_scheme',
+        ],
         [
           {
             name: 'stroke_width',
@@ -153,9 +119,9 @@ const config: ControlPanelConfig = {
               choices: formatSelectOptions([1, 2, 3, 4, 5]),
             },
           },
+          legendPosition,
         ],
-        [legendPosition],
-        [legendFormat],
+        [legendFormat, null],
       ],
     },
     {

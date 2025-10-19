@@ -18,14 +18,14 @@
  */
 import { RefObject } from 'react';
 import { useDrag } from 'react-dnd';
-import { css, Metric, styled, useTheme } from '@superset-ui/core';
+import { css, Metric, styled } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import { DndItemType } from 'src/explore/components/DndItemType';
 import {
   StyledColumnOption,
   StyledMetricOption,
 } from 'src/explore/components/optionRenderers';
-import { Icons } from '@superset-ui/core/components/Icons';
+import Icons from 'src/components/Icons';
 
 import { DatasourcePanelDndItem } from '../types';
 
@@ -35,22 +35,17 @@ const DatasourceItemContainer = styled.div`
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    height: ${theme.sizeUnit * 6}px;
-    padding: 0 ${theme.sizeUnit}px;
+    height: ${theme.gridUnit * 6}px;
+    padding: 0 ${theme.gridUnit}px;
 
     // hack to make the drag preview image corners rounded
     transform: translate(0, 0);
-    color: ${theme.colorText};
-    background-color: ${theme.colorBgLayout};
+    background-color: inherit;
     border-radius: 4px;
-
-    &:hover {
-      background-color: ${theme.colorPrimaryBgHover};
-    }
 
     > div {
       min-width: 0;
-      margin-right: ${theme.sizeUnit * 2}px;
+      margin-right: ${theme.gridUnit * 2}px;
     }
   `}
 `;
@@ -68,7 +63,6 @@ export default function DatasourcePanelDragOption(
   props: DatasourcePanelDragOptionProps,
 ) {
   const { labelRef, showTooltip, type, value } = props;
-  const theme = useTheme();
   const [{ isDragging }, drag] = useDrag({
     item: {
       value: props.value,
@@ -92,15 +86,7 @@ export default function DatasourcePanelDragOption(
       ) : (
         <StyledMetricOption metric={value as MetricOption} {...optionProps} />
       )}
-      <Icons.Drag
-        iconSize="xl"
-        css={css`
-          color: ${theme.colorFill};
-          &hover {
-            color: ${theme.colorIcon};
-          }
-        `}
-      />
+      <Icons.Drag />
     </DatasourceItemContainer>
   );
 }

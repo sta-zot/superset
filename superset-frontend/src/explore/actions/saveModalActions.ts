@@ -83,13 +83,13 @@ const hasTemporalRangeFilter = (formData: Partial<QueryFormData>): boolean =>
     (filter: SimpleAdhocFilter) => filter.operator === Operators.TemporalRange,
   );
 
-export const getSlicePayload = async (
+export const getSlicePayload = (
   sliceName: string,
   formDataWithNativeFilters: QueryFormData = {} as QueryFormData,
   dashboards: number[],
   owners: [],
   formDataFromSlice: QueryFormData = {} as QueryFormData,
-): Promise<Partial<PayloadSlice>> => {
+): Partial<PayloadSlice> => {
   const adhocFilters: Partial<QueryFormData> = extractAdhocFiltersFromFormData(
     formDataWithNativeFilters,
   );
@@ -132,7 +132,6 @@ export const getSlicePayload = async (
             adhocFilters[filtersKey].push({
               ...filter,
               comparator: 'No filter',
-              isExtra: false,
             });
           }
         },
@@ -159,15 +158,6 @@ export const getSlicePayload = async (
     }
   }
 
-  const queryContext = await buildV1ChartDataPayload({
-    formData,
-    force: false,
-    resultFormat: 'json',
-    resultType: 'full',
-    setDataMask: null,
-    ownState: null,
-  });
-
   const payload: Partial<PayloadSlice> = {
     params: JSON.stringify(formData),
     slice_name: sliceName,
@@ -176,7 +166,16 @@ export const getSlicePayload = async (
     datasource_type: datasourceType,
     dashboards,
     owners,
-    query_context: JSON.stringify(queryContext),
+    query_context: JSON.stringify(
+      buildV1ChartDataPayload({
+        formData,
+        force: false,
+        resultFormat: 'json',
+        resultType: 'full',
+        setDataMask: null,
+        ownState: null,
+      }),
+    ),
   };
 
   return payload;
@@ -242,7 +241,7 @@ export const updateSlice =
     try {
       const response = await SupersetClient.put({
         endpoint: `/api/v1/chart/${sliceId}`,
-        jsonPayload: await getSlicePayload(
+        jsonPayload: getSlicePayload(
           sliceName,
           formData,
           dashboards,
@@ -274,7 +273,7 @@ export const createSlice =
     try {
       const response = await SupersetClient.post({
         endpoint: `/api/v1/chart/`,
-        jsonPayload: await getSlicePayload(
+        jsonPayload: getSlicePayload(
           sliceName,
           formData,
           dashboards,
@@ -312,7 +311,7 @@ export const getSliceDashboards =
     try {
       const response = await SupersetClient.get({
         endpoint: `/api/v1/chart/${slice.slice_id}?q=${rison.encode({
-          select_columns: ['dashboards.id'],
+          columns: ['dashboards.id'],
         })}`,
       });
 

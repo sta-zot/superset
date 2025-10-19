@@ -20,39 +20,29 @@
 # If you choose to use this type of deployment make sure to
 # create you own docker environment file (docker/.env) with your own
 # unique random secure passwords and SECRET_KEY.
-#
-# For verbose logging during development:
-# - Set SUPERSET_LOG_LEVEL=debug in docker/.env-local for detailed Superset logs
 # -----------------------------------------------------------------------
 x-superset-user: &superset-user root
 x-superset-volumes: &superset-volumes
   # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
   - ./docker:/app/docker
   - ./superset:/app/superset
-  - ./superset-core:/app/superset-core
   - ./superset-frontend:/app/superset-frontend
   - superset_home:/app/superset_home
   - ./tests:/app/tests
-  - superset_data:/app/data
+
 x-common-build: &common-build
   context: .
   target: ${SUPERSET_BUILD_TARGET:-dev} # can use `dev` (default) or `lean`
   cache_from:
-    - apache/superset-cache:3.10-slim-trixie
+    - apache/superset-cache:3.10-slim-bookworm
   args:
     DEV_MODE: "true"
     INCLUDE_CHROMIUM: ${INCLUDE_CHROMIUM:-false}
     INCLUDE_FIREFOX: ${INCLUDE_FIREFOX:-false}
     BUILD_TRANSLATIONS: ${BUILD_TRANSLATIONS:-false}
-    LOAD_EXAMPLES_DUCKDB: ${LOAD_EXAMPLES_DUCKDB:-true}
 
 services:
   nginx:
-    env_file:
-      - path: docker/.env # default
-        required: true
-      - path: docker/.env-local # optional override
-        required: false
     image: nginx:latest
     container_name: superset_nginx
     restart: unless-stopped
@@ -62,8 +52,6 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./docker/nginx/templates:/etc/nginx/templates:ro
-
   redis:
     image: redis:7
     container_name: superset_cache
@@ -79,7 +67,7 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    image: postgres:16
+    image: postgres:15
     container_name: superset_db
     restart: unless-stopped
     ports:
@@ -111,7 +99,8 @@ services:
         condition: service_completed_successfully
     volumes: *superset-volumes
     environment:
-      SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
+      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
 
   superset-websocket:
     container_name: superset_websocket
@@ -164,7 +153,9 @@ services:
     user: *superset-user
     volumes: *superset-volumes
     environment:
-      SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
+      SUPERSET_LOAD_EXAMPLES: "${SUPERSET_LOAD_EXAMPLES:-yes}"
+      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
     healthcheck:
       disable: true
 
@@ -185,7 +176,7 @@ services:
       NPM_RUN_PRUNE: false
       SCARF_ANALYTICS: "${SCARF_ANALYTICS:-}"
       # configuring the dev-server to use the host.docker.internal to connect to the backend
-      superset: "http://superset:8088"
+      superset: "http://host.docker.internal:8088"
     ports:
       - "127.0.0.1:9000:9000"  # exposing the dynamic webpack dev server
     container_name: superset_node
@@ -209,6 +200,8 @@ services:
         required: false
     environment:
       CELERYD_CONCURRENCY: 2
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
+      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
     restart: unless-stopped
     depends_on:
       superset-init:
@@ -240,6 +233,9 @@ services:
     volumes: *superset-volumes
     healthcheck:
       disable: true
+    environment:
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
+      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
 
   superset-tests-worker:
     build:
@@ -260,6 +256,7 @@ services:
       REDIS_RESULTS_DB: 3
       REDIS_HOST: localhost
       CELERYD_CONCURRENCY: 8
+      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
     network_mode: host
     depends_on:
       superset-init:
@@ -275,6 +272,4 @@ volumes:
   db_home:
     external: false
   redis:
-    external: false
-  superset_data:
     external: false

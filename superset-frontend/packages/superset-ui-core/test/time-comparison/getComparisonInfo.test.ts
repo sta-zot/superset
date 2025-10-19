@@ -63,11 +63,6 @@ const form_data = {
   header_font_size: 60,
   subheader_font_size: 26,
   comparison_color_enabled: true,
-  column_config: {
-    name: {
-      visible: true,
-    },
-  },
   extra_form_data: {},
   force: false,
   result_format: 'json',
@@ -147,7 +142,7 @@ describe('getComparisonInfo', () => {
     expect(resultFormData.adhoc_filters?.[0]).toEqual(expectedFilters[0]);
   });
 
-  it('If adhoc_filter is undefined the code wont break', () => {
+  it('If adhoc_filter is undefrined the code wont break', () => {
     const resultFormData = getComparisonInfo(
       {
         ...form_data,
@@ -179,22 +174,5 @@ describe('getComparisonInfo', () => {
     ];
     expect(resultFormData.adhoc_filters?.length).toEqual(1);
     expect(resultFormData.adhoc_filters).toEqual(expectedFilters);
-  });
-
-  it('Updates comparison display values when toggled', () => {
-    const resultFormData = getComparisonInfo(
-      {
-        ...form_data,
-        column_config: {
-          name: {
-            visible: false,
-          },
-        },
-      },
-      ComparisonTimeRangeType.Year,
-      {},
-    );
-
-    expect(resultFormData.column_config.name.visible).toEqual(false);
   });
 });

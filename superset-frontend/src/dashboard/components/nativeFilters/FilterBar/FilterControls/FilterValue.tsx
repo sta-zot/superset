@@ -44,8 +44,8 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { isEqual, isEqualWith } from 'lodash';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
-import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
-import { Loading, Constants } from '@superset-ui/core/components';
+import Loading from 'src/components/Loading';
+import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
@@ -53,6 +53,8 @@ import {
   setDirectPathToChild,
 } from 'src/dashboard/actions/dashboardState';
 import { RESPONSIVE_WIDTH } from 'src/filters/components/common';
+import { FAST_DEBOUNCE } from 'src/constants';
+import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
 import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
 import { getFormData } from '../../utils';
@@ -95,8 +97,6 @@ const FilterValue: FC<FilterControlProps> = ({
   orientation = FilterBarOrientation.Vertical,
   overflow = false,
   validateStatus,
-  clearAllTrigger,
-  onClearAllComplete,
 }) => {
   const { id, targets, filterType, adhoc_filters, time_range } = filter;
   const metadata = getChartMetadataRegistry().get(filterType);
@@ -155,34 +155,6 @@ const FilterValue: FC<FilterControlProps> = ({
       dashboardId,
     });
     const filterOwnState = filter.dataMask?.ownState || {};
-    if (filter?.cascadeParentIds?.length) {
-      // Prevent unnecessary backend requests by validating parent filter selections first
-
-      let selectedParentFilterValueCounts = 0;
-
-      filter?.cascadeParentIds?.forEach(pId => {
-        const extraFormData = dataMaskSelected?.[pId]?.extraFormData;
-        if (extraFormData?.filters?.length) {
-          selectedParentFilterValueCounts += extraFormData.filters.length;
-        } else if (extraFormData?.time_range) {
-          selectedParentFilterValueCounts += 1;
-        }
-      });
-
-      // check if all parent filters with defaults have a value selected
-
-      let depsCount = dependencies.filters?.length ?? 0;
-
-      if (dependencies?.time_range) {
-        depsCount += 1;
-      }
-      if (selectedParentFilterValueCounts !== depsCount) {
-        // child filter should not request backend until it
-        // has all the required information from parent filters
-        return;
-      }
-    }
-
     // TODO: We should try to improve our useEffect hooks to depend more on
     // granular information instead of big objects that require deep comparison.
     const customizer = (
@@ -254,7 +226,6 @@ const FilterValue: FC<FilterControlProps> = ({
     hasDataSource,
     isRefreshing,
     shouldRefresh,
-    dataMaskSelected,
   ]);
 
   useEffect(() => {
@@ -263,7 +234,7 @@ const FilterValue: FC<FilterControlProps> = ({
         () => {
           inputRef?.current?.focus();
         },
-        overflow ? Constants.FAST_DEBOUNCE : 0,
+        overflow ? FAST_DEBOUNCE : 0,
       );
     }
   }, [inputRef, outlinedFilterId, lastUpdated, filter.id, overflow]);
@@ -304,8 +275,6 @@ const FilterValue: FC<FilterControlProps> = ({
       setFocusedFilter,
       unsetFocusedFilter,
       setFilterActive,
-      clearAllTrigger,
-      onClearAllComplete,
     }),
     [
       setDataMask,
@@ -314,8 +283,6 @@ const FilterValue: FC<FilterControlProps> = ({
       unsetHoveredFilter,
       setFocusedFilter,
       unsetFocusedFilter,
-      clearAllTrigger,
-      onClearAllComplete,
     ],
   );
 
@@ -355,7 +322,7 @@ const FilterValue: FC<FilterControlProps> = ({
   return (
     <StyledDiv data-test="form-item-value">
       {isLoading ? (
-        <Loading position="inline-centered" size="s" muted />
+        <Loading position="inline-centered" />
       ) : (
         <SuperChart
           height={HEIGHT}

@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Icons } from '@superset-ui/core/components/Icons';
+import { PlusOutlined } from '@ant-design/icons';
 import { css, styled, t } from '@superset-ui/core';
-import { Button } from '@superset-ui/core/components';
-import Tree, { TreeProps } from '@superset-ui/core/components/Tree';
+import { Button, Tree } from 'antd';
+import { TreeProps } from 'antd/lib/tree';
 import { forwardRef } from 'react';
 import { FlatLayerDataNode, FlatLayerTreeProps, LayerConf } from './types';
 import { handleDrop } from './dragDropUtil';
@@ -36,24 +36,24 @@ export const StyledLayerTreeItem = styled(LayerTreeItem)`
 
     border: none;
     border-radius: ${theme.borderRadius}px;
-    background-color: ${theme.colorFill};
-    font-size: ${theme.fontSizeSM}px;
-    font-weight: ${theme.fontWeightNormal};
+    background-color: ${theme.colors.grayscale.light3};
+    font-size: ${theme.typography.sizes.s}px;
+    font-weight: ${theme.typography.weights.normal};
 
     &:hover {
-      background-color: ${theme.colorFill};
+      background-color: ${theme.colors.grayscale.light3};
     }
 
     & .layer-tree-item-close {
       border-right: solid;
       border-right-width: 1px;
-      border-right-color: ${theme.colorSplit};
+      border-right-color: ${theme.colors.grayscale.light2};
     }
 
     & .layer-tree-item-edit {
       border-left: solid;
       border-left-width: 1px;
-      border-left-color: ${theme.colorSplit};
+      border-left-color: ${theme.colors.grayscale.light2};
     }
 
     & .layer-tree-item-title {
@@ -63,19 +63,19 @@ export const StyledLayerTreeItem = styled(LayerTreeItem)`
 
     & .layer-tree-item-type {
       padding-left: 4px;
-      font-size: ${theme.fontSizeXS}px;
-      font-family: ${theme.fontFamilyCode};
+      font-size: ${theme.typography.sizes.xs}px;
+      font-family: ${theme.typography.families.monospace};
     }
 
     & > button {
       border: none;
       background-color: unset;
-      color: ${theme.colorTextSecondary};
+      color: ${theme.colors.grayscale.light1};
     }
 
     & > button:hover {
       background-color: unset;
-      color: ${theme.colorTextSecondary};
+      color: ${theme.colors.grayscale.light1};
     }
   `}
 `;
@@ -118,9 +118,7 @@ export const FlatLayerTree = forwardRef<HTMLDivElement, FlatLayerTreeProps>(
 
     const treeData = layerConfigsToTreeData(layerConfigs);
 
-    const onDrop = (
-      info: Parameters<NonNullable<TreeProps<FlatLayerDataNode>['onDrop']>>[0],
-    ) => {
+    const onDrop: TreeProps['onDrop'] = info => {
       const data = handleDrop(info, treeData);
       const movedLayerConfigs = treeDataToLayerConfigs(data);
       onMoveLayer(movedLayerConfigs);
@@ -135,7 +133,7 @@ export const FlatLayerTree = forwardRef<HTMLDivElement, FlatLayerTreeProps>(
           onClick={onAddLayer}
           size="small"
           type="dashed"
-          icon={<Icons.PlusOutlined iconSize="m" />}
+          icon={<PlusOutlined />}
         >
           {addLayerLabel}
         </Button>

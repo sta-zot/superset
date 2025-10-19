@@ -30,7 +30,6 @@ import {
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import { optionLabel } from 'src/utils/common';
-import { ensureAppRoot } from 'src/utils/pathUtils';
 import { URL_PARAMS } from 'src/constants';
 import {
   DISABLE_INPUT_OPERATORS,
@@ -70,7 +69,7 @@ export function getAnnotationJsonUrl(slice_id, force) {
 
   const uri = URI(window.location.search);
   return uri
-    .pathname(ensureAppRoot('/api/v1/chart/data'))
+    .pathname('/api/v1/chart/data')
     .search({
       form_data: safeStringify({ slice_id }),
       force,
@@ -85,9 +84,9 @@ export function getURIDirectory(endpointType = 'base') {
       endpointType,
     )
   ) {
-    return ensureAppRoot('/superset/explore_json/');
+    return '/superset/explore_json/';
   }
-  return ensureAppRoot('/explore/');
+  return '/explore/';
 }
 
 export function mountExploreUrl(endpointType, extraSearch = {}, force = false) {
@@ -114,7 +113,7 @@ export function getChartDataUri({ path, qs, allowDomainSharding = false }) {
     protocol: window.location.protocol.slice(0, -1),
     hostname: getHostName(allowDomainSharding),
     port: window.location.port ? window.location.port : '',
-    path: ensureAppRoot(path),
+    path,
   });
   if (qs) {
     uri = uri.search(qs);
@@ -144,10 +143,7 @@ export function getExploreUrl({
   // eslint-disable-next-line no-param-reassign
   delete formData.label_colors;
 
-  let uri = getChartDataUri({
-    path: '/',
-    allowDomainSharding,
-  });
+  let uri = getChartDataUri({ path: '/', allowDomainSharding });
   if (curUrl) {
     uri = URI(URI(curUrl).search());
   }
@@ -207,7 +203,7 @@ export const getQuerySettings = formData => {
   ];
 };
 
-export const buildV1ChartDataPayload = async ({
+export const buildV1ChartDataPayload = ({
   formData,
   force,
   resultFormat,
@@ -242,7 +238,7 @@ export const buildV1ChartDataPayload = async ({
 export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
   resultFormat === 'csv' ? resultFormat : resultType;
 
-export const exportChart = async ({
+export const exportChart = ({
   formData,
   resultFormat = 'json',
   resultType = 'full',
@@ -261,8 +257,8 @@ export const exportChart = async ({
     });
     payload = formData;
   } else {
-    url = ensureAppRoot('/api/v1/chart/data');
-    payload = await buildV1ChartDataPayload({
+    url = '/api/v1/chart/data';
+    payload = buildV1ChartDataPayload({
       formData,
       force,
       resultFormat,

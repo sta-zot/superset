@@ -17,8 +17,9 @@
  * under the License.
  */
 import { css, styled, t } from '@superset-ui/core';
-import { Button, Form } from '@superset-ui/core/components';
+import { Button, Form } from 'antd';
 import { FC, useEffect, useState } from 'react';
+import { mix } from 'polished';
 import { MapViewConfigs, MapViewPopoverContentProps } from './types';
 import { ControlFormItem } from '../ColumnConfigControl/ControlForm';
 
@@ -27,10 +28,61 @@ export const StyledButtonContainer = styled.div`
   margin: 8px;
 `;
 
+export const StyledCloseButton = styled(Button)`
+  ${({ theme }) => css`
+    flex: 1;
+    margin-right: 4px;
+    line-height: 1.5715;
+    border-radius: ${theme.borderRadius}px;
+    background-color: ${theme.colors.primary.light4};
+    color: ${theme.colors.primary.dark1};
+    font-size: ${theme.typography.sizes.s}px;
+    font-weight: ${theme.typography.weights.bold};
+    text-transform: uppercase;
+    min-width: ${theme.gridUnit * 36};
+    min-height: ${theme.gridUnit * 8};
+    box-shadow: none;
+    border-width: 0px;
+    border-style: none;
+    border-color: transparent;
+    &:hover {
+      background-color: ${mix(
+        0.1,
+        theme.colors.primary.base,
+        theme.colors.primary.light4,
+      )};
+      color: ${theme.colors.primary.dark1};
+    }
+  `}
+`;
+
 export const StyledControlNumberFormItem = styled(ControlFormItem)`
   ${({ theme }) => css`
     border-radius: ${theme.borderRadius}px;
     width: 100%;
+  `}
+`;
+
+export const StyledSaveButton = styled(Button)`
+  ${({ theme }) => css`
+    flex: 1;
+    margin-left: 4px;
+    line-height: 1.5715;
+    border-radius: ${theme.borderRadius}px;
+    background-color: ${theme.colors.primary.base};
+    color: ${theme.colors.grayscale.light5};
+    font-size: ${theme.typography.sizes.s}px;
+    font-weight: ${theme.typography.weights.bold};
+    text-transform: uppercase;
+    min-width: ${theme.gridUnit * 36};
+    min-height: ${theme.gridUnit * 8};
+    box-shadow: none;
+    border-width: 0px;
+    border-style: none;
+    border-color: transparent;
+    &:hover {
+      background-color: ${theme.colors.primary.dark1};
+    }
   `}
 `;
 
@@ -133,12 +185,12 @@ export const MapViewPopoverContent: FC<MapViewPopoverContentProps> = ({
           max={180}
         />
         <StyledButtonContainer>
-          <Button buttonStyle="secondary" onClick={onCloseClick}>
+          <StyledCloseButton type="default" onClick={onCloseClick}>
             {closeButtonText}
-          </Button>
-          <Button buttonStyle="primary" onClick={onSaveClick}>
+          </StyledCloseButton>
+          <StyledSaveButton type="primary" onClick={onSaveClick}>
             {saveButtonText}
-          </Button>
+          </StyledSaveButton>
         </StyledButtonContainer>
       </Form>
     </div>

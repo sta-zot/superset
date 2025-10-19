@@ -24,27 +24,18 @@ import {
   useRef,
   useState,
 } from 'react';
-import {
-  css,
-  getExtensionsRegistry,
-  QueryData,
-  styled,
-  SupersetTheme,
-  t,
-  useTheme,
-} from '@superset-ui/core';
+import { css, getExtensionsRegistry, styled, t } from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
-import { isEmbedded } from 'src/dashboard/util/isEmbedded';
-import { Tooltip, EditableTitle, Icons } from '@superset-ui/core/components';
+import { Tooltip } from 'src/components/Tooltip';
 import { useSelector } from 'react-redux';
+import EditableTitle from 'src/components/EditableTitle';
 import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
 import { SliceHeaderControlsProps } from 'src/dashboard/components/SliceHeaderControls/types';
 import FiltersBadge from 'src/dashboard/components/FiltersBadge';
+import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
-import RowCountLabel from 'src/components/RowCountLabel';
-import { Link } from 'react-router-dom';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -59,7 +50,6 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   formData: object;
   width: number;
   height: number;
-  exportPivotExcel?: (arg0: string) => void;
 };
 
 const annotationsLoading = t('Annotation layers are still loading.');
@@ -67,16 +57,16 @@ const annotationsError = t('One or more annotation layers failed loading.');
 const CrossFilterIcon = styled(Icons.ApartmentOutlined)`
   ${({ theme }) => `
     cursor: default;
-    color: ${theme.colorPrimary};
+    color: ${theme.colors.primary.base};
     line-height: 1.8;
   `}
 `;
 
 const ChartHeaderStyles = styled.div`
   ${({ theme }) => css`
-    font-size: ${theme.fontSizeLG}px;
-    font-weight: ${theme.fontWeightStrong};
-    margin-bottom: ${theme.sizeUnit}px;
+    font-size: ${theme.typography.sizes.l}px;
+    font-weight: ${theme.typography.weights.bold};
+    margin-bottom: ${theme.gridUnit}px;
     display: flex;
     max-width: 100%;
     align-items: flex-start;
@@ -85,13 +75,13 @@ const ChartHeaderStyles = styled.div`
     & > .header-title {
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: calc(100% - ${theme.sizeUnit * 4}px);
+      max-width: 100%;
       flex-grow: 1;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
 
-      & > span.ant-tooltip-open {
+      & > span.antd5-tooltip-open {
         display: inline;
       }
     }
@@ -100,6 +90,10 @@ const ChartHeaderStyles = styled.div`
       display: flex;
       align-items: center;
       height: 24px;
+
+      & > * {
+        margin-left: ${theme.gridUnit * 2}px;
+      }
     }
 
     .dropdown.btn-group {
@@ -117,18 +111,18 @@ const ChartHeaderStyles = styled.div`
     }
 
     .dropdown-menu.dropdown-menu-right {
-      top: ${theme.sizeUnit * 5}px;
+      top: ${theme.gridUnit * 5}px;
     }
 
     .divider {
-      margin: ${theme.sizeUnit}px 0;
+      margin: ${theme.gridUnit}px 0;
     }
 
     .refresh-tooltip {
       display: block;
-      height: ${theme.sizeUnit * 4}px;
-      margin: ${theme.sizeUnit}px 0;
-      color: ${theme.colorTextLabel};
+      height: ${theme.gridUnit * 4}px;
+      margin: ${theme.gridUnit}px 0;
+      color: ${theme.colors.text.label};
     }
   `}
 `;
@@ -168,7 +162,6 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       formData,
       width,
       height,
-      exportPivotExcel = () => ({}),
     },
     ref,
   ) => {
@@ -176,8 +169,6 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       'dashboard.slice.header',
     );
     const uiConfig = useUiConfig();
-    const shouldShowRowLimitWarning =
-      !isEmbedded() || uiConfig.showRowLimitWarning;
     const dashboardPageId = useContext(DashboardPageIdContext);
     const [headerTooltip, setHeaderTooltip] = useState<ReactNode | null>(null);
     const headerRef = useRef<HTMLDivElement>(null);
@@ -188,15 +179,6 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
     const isCrossFiltersEnabled = useSelector<RootState, boolean>(
       ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
     );
-
-    const firstQueryResponse = useSelector<RootState, QueryData | undefined>(
-      state => state.charts[slice.slice_id].queriesResponse?.[0],
-    );
-
-    const theme = useTheme();
-
-    const rowLimit = Number(formData.row_limit || -1);
-    const sqlRowCount = Number(firstQueryResponse?.sql_rowcount || 0);
 
     const canExplore = !editMode && supersetCanExplore;
 
@@ -217,43 +199,22 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
 
     const exploreUrl = `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${slice.slice_id}`;
 
-    const renderExploreLink = (title: string) => (
-      <Link
-        to={exploreUrl}
-        css={(theme: SupersetTheme) => css`
-          color: ${theme.colorText};
-          text-decoration: none;
-          :hover {
-            text-decoration: underline;
-          }
-          display: inline-block;
-        `}
-      >
-        {title}
-      </Link>
-    );
-
     return (
       <ChartHeaderStyles data-test="slice-header" ref={ref}>
         <div className="header-title" ref={headerRef}>
           <Tooltip title={headerTooltip}>
-            {/* this div ensures the hover event triggers correctly and prevents flickering */}
-            <div>
-              <EditableTitle
-                title={
-                  sliceName ||
-                  (editMode
-                    ? '---' // this makes an empty title clickable
-                    : '')
-                }
-                canEdit={editMode}
-                onSaveTitle={updateSliceName}
-                showTooltip={false}
-                renderLink={
-                  canExplore && exploreUrl ? renderExploreLink : undefined
-                }
-              />
-            </div>
+            <EditableTitle
+              title={
+                sliceName ||
+                (editMode
+                  ? '---' // this makes an empty title clickable
+                  : '')
+              }
+              canEdit={editMode}
+              onSaveTitle={updateSliceName}
+              showTooltip={false}
+              url={canExplore ? exploreUrl : undefined}
+            />
           </Tooltip>
           {!!Object.values(annotationQuery).length && (
             <Tooltip
@@ -261,9 +222,10 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               placement="top"
               title={annotationsLoading}
             >
-              <Icons.ReloadOutlined
-                className="warning"
+              <i
+                role="img"
                 aria-label={annotationsLoading}
+                className="fa fa-refresh warning"
               />
             </Tooltip>
           )}
@@ -273,9 +235,10 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               placement="top"
               title={annotationsError}
             >
-              <Icons.ExclamationCircleOutlined
-                className="danger"
+              <i
+                role="img"
                 aria-label={annotationsError}
+                className="fa fa-exclamation-circle danger"
               />
             </Tooltip>
           )}
@@ -299,25 +262,8 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   <CrossFilterIcon iconSize="m" />
                 </Tooltip>
               )}
-
               {!uiConfig.hideChartControls && (
                 <FiltersBadge chartId={slice.slice_id} />
-              )}
-
-              {shouldShowRowLimitWarning && sqlRowCount === rowLimit && (
-                <RowCountLabel
-                  rowcount={sqlRowCount}
-                  limit={rowLimit}
-                  label={
-                    <Icons.WarningOutlined
-                      iconSize="l"
-                      iconColor={theme.colorWarning}
-                      css={theme => css`
-                        padding: ${theme.sizeUnit}px;
-                      `}
-                    />
-                  }
-                />
               )}
               {!uiConfig.hideChartControls && (
                 <SliceHeaderControls
@@ -349,7 +295,6 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   formData={formData}
                   exploreUrl={exploreUrl}
                   crossFiltersEnabled={isCrossFiltersEnabled}
-                  exportPivotExcel={exportPivotExcel}
                 />
               )}
             </>

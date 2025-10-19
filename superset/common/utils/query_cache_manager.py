@@ -19,10 +19,10 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from flask import current_app
 from flask_caching import Cache
 from pandas import DataFrame
 
+from superset import app
 from superset.common.db_query_status import QueryStatus
 from superset.constants import CacheRegion
 from superset.exceptions import CacheLoadError
@@ -33,6 +33,8 @@ from superset.superset_typing import Column
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import error_msg_from_exception, get_stacktrace
 
+config = app.config
+stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
 _cache: dict[CacheRegion, Cache] = {
@@ -45,10 +47,6 @@ class QueryCacheManager:
     """
     Class for manage query-cache getting and setting
     """
-
-    @property
-    def stats_logger(self) -> BaseStatsLogger:
-        return current_app.config["STATS_LOGGER"]
 
     # pylint: disable=too-many-instance-attributes,too-many-arguments
     def __init__(
@@ -110,11 +108,9 @@ class QueryCacheManager:
             self.annotation_data = {} if annotation_data is None else annotation_data
 
             if self.status != QueryStatus.FAILED:
-                current_app.config["STATS_LOGGER"].incr("loaded_from_source")
+                stats_logger.incr("loaded_from_source")
                 if not force_query:
-                    current_app.config["STATS_LOGGER"].incr(
-                        "loaded_from_source_without_force"
-                    )
+                    stats_logger.incr("loaded_from_source_without_force")
                 self.is_loaded = True
 
             value = {
@@ -158,7 +154,7 @@ class QueryCacheManager:
 
         if cache_value := _cache[region].get(key):
             logger.debug("Cache key: %s", key)
-            current_app.config["STATS_LOGGER"].incr("loading_from_cache")
+            stats_logger.incr("loading_from_cache")
             try:
                 query_cache.df = cache_value["df"]
                 query_cache.query = cache_value["query"]
@@ -180,7 +176,7 @@ class QueryCacheManager:
                     cache_value["dttm"] if cache_value is not None else None
                 )
                 query_cache.cache_value = cache_value
-                current_app.config["STATS_LOGGER"].incr("loaded_from_cache")
+                stats_logger.incr("loaded_from_cache")
             except KeyError as ex:
                 logger.exception(ex)
                 logger.error(

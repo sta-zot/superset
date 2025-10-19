@@ -19,6 +19,7 @@
 import { render, screen } from 'spec/helpers/testing-library';
 import DatasetPanel, {
   REFRESHING,
+  ALT_LOADING,
   tableColumnDefinition,
   COLUMN_TITLE,
 } from 'src/features/datasets/AddDataset/DatasetPanel/DatasetPanel';
@@ -35,14 +36,13 @@ import {
 } from './MessageContent';
 
 jest.mock(
-  '@superset-ui/core/components/Icons/AsyncIcon',
+  'src/components/Icons/Icon',
   () =>
     ({ fileName }: { fileName: string }) => (
       <span role="img" aria-label={fileName.replace('_', '-')} />
     ),
 );
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasetPanel', () => {
   test('renders a blank state DatasetPanel', () => {
     render(<DatasetPanel hasError={false} columnList={[]} loading={false} />, {
@@ -101,8 +101,8 @@ describe('DatasetPanel', () => {
       },
     );
 
-    const loadingIndicator = screen.getByTestId('loading-indicator');
-    expect(loadingIndicator).toBeVisible();
+    const blankDatasetImg = screen.getByAltText(ALT_LOADING);
+    expect(blankDatasetImg).toBeVisible();
     const blankDatasetTitle = screen.getByText(REFRESHING);
     expect(blankDatasetTitle).toBeVisible();
   });

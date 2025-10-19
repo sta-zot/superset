@@ -26,13 +26,11 @@ def test_report_post_schema_custom_width_validation(mocker: MockerFixture) -> No
     """
     Test the custom width validation.
     """
-    mocker.patch(
-        "flask.current_app.config",
-        {
-            "ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH": 100,
-            "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": 200,
-        },
-    )
+    current_app = mocker.patch("superset.reports.schemas.current_app")
+    current_app.config = {
+        "ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH": 100,
+        "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": 200,
+    }
 
     schema = ReportSchedulePostSchema()
 

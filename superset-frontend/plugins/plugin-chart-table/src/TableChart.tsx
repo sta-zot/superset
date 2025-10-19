@@ -24,7 +24,6 @@ import {
   useState,
   MouseEvent,
   KeyboardEvent as ReactKeyboardEvent,
-  useEffect,
 } from 'react';
 
 import {
@@ -43,6 +42,7 @@ import {
   DataRecordValue,
   DTTM_ALIAS,
   ensureIsArray,
+  GenericDataType,
   getSelectedText,
   getTimeFormatterForGranularity,
   BinaryQueryObjectFilterClause,
@@ -51,16 +51,8 @@ import {
   t,
   tn,
   useTheme,
-  SupersetTheme,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
-import {
-  Input,
-  Space,
-  RawAntdSelect as Select,
-  Dropdown,
-  Tooltip,
-} from '@superset-ui/core/components';
+import { Dropdown, Menu, Tooltip } from '@superset-ui/chart-controls';
 import {
   CheckOutlined,
   InfoCircleOutlined,
@@ -69,12 +61,10 @@ import {
   PlusCircleOutlined,
   TableOutlined,
 } from '@ant-design/icons';
-import { isEmpty, debounce, isEqual } from 'lodash';
+import { isEmpty } from 'lodash';
 import {
   ColorSchemeEnum,
   DataColumnMeta,
-  SearchOption,
-  SortByItem,
   TableChartTransformedProps,
 } from './types';
 import DataTable, {
@@ -83,12 +73,12 @@ import DataTable, {
   SelectPageSizeRendererProps,
   SizeOption,
 } from './DataTable';
+
 import Styles from './Styles';
 import { formatColumnValue } from './utils/formatValue';
-import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
-import { updateTableOwnState } from './DataTable/utils/externalAPIs';
+import { PAGE_SIZE_OPTIONS } from './consts';
+import { updateExternalFormData } from './DataTable/utils/externalAPIs';
 import getScrollBarSize from './DataTable/utils/getScrollBarSize';
-import DateWithFormatter from './utils/DateWithFormatter';
 
 type ValueRange = [number, number];
 
@@ -169,21 +159,12 @@ function cellOffset({
 function cellBackground({
   value,
   colorPositiveNegative = false,
-  theme,
 }: {
   value: number;
   colorPositiveNegative: boolean;
-  theme: SupersetTheme;
 }) {
-  if (!colorPositiveNegative) {
-    return `${theme.colorFillSecondary}50`;
-  }
-
-  if (value < 0) {
-    return `${theme.colorError}50`;
-  }
-
-  return `${theme.colorSuccess}50`;
+  const r = colorPositiveNegative && value < 0 ? 150 : 0;
+  return `rgba(${r},0,0,0.2)`;
 }
 
 function SortIcon<D extends object>({ column }: { column: ColumnInstance<D> }) {
@@ -195,25 +176,18 @@ function SortIcon<D extends object>({ column }: { column: ColumnInstance<D> }) {
   return sortIcon;
 }
 
-function SearchInput({
-  count,
-  value,
-  onChange,
-  onBlur,
-  inputRef,
-}: SearchInputProps) {
+function SearchInput({ count, value, onChange }: SearchInputProps) {
   return (
-    <Space direction="horizontal" size={4} className="dt-global-filter">
-      {t('Search')}
-      <Input
+    <span className="dt-global-filter">
+      {t('Search')}{' '}
+      <input
         aria-label={t('Search %s records', count)}
-        placeholder={tn('%s record', '%s records...', count, count)}
+        className="form-control input-sm"
+        placeholder={tn('search.num_records', count)}
         value={value}
         onChange={onChange}
-        onBlur={onBlur}
-        ref={inputRef}
       />
-    </Space>
+    </span>
   );
 }
 
@@ -222,22 +196,23 @@ function SelectPageSize({
   current,
   onChange,
 }: SelectPageSizeRendererProps) {
-  const { Option } = Select;
-
   return (
-    <>
+    <span
+      className="dt-select-page-size form-inline"
+      role="group"
+      aria-label={t('Select page size')}
+    >
       <label htmlFor="pageSizeSelect" className="sr-only">
         {t('Select page size')}
       </label>
       {t('Show')}{' '}
-      <Select<number>
+      <select
         id="pageSizeSelect"
+        className="form-control input-sm"
         value={current}
-        onChange={value => onChange(value)}
-        size="small"
-        css={(theme: SupersetTheme) => css`
-          width: ${theme.sizeUnit * 18}px;
-        `}
+        onChange={e => {
+          onChange(Number((e.target as HTMLSelectElement).value));
+        }}
         aria-label={t('Show entries per page')}
       >
         {options.map(option => {
@@ -245,14 +220,14 @@ function SelectPageSize({
             ? option
             : [option, option];
           return (
-            <Option key={size} value={Number(size)}>
+            <option key={size} value={size}>
               {text}
-            </Option>
+            </option>
           );
         })}
-      </Select>{' '}
+      </select>{' '}
       {t('entries per page')}
-    </>
+    </span>
   );
 }
 
@@ -292,9 +267,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     isUsingTimeComparison,
     basicColorFormatters,
     basicColorColumnFormatters,
-    hasServerPageLengthChanged,
-    serverPageLength,
-    slice_id,
   } = props;
   const comparisonColumns = [
     { key: 'all', label: t('Display all') },
@@ -322,9 +294,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   // only take relevant page size options
   const pageSizeOptions = useMemo(() => {
     const getServerPagination = (n: number) => n <= rowCount;
-    return (
-      serverPagination ? SERVER_PAGE_SIZE_OPTIONS : PAGE_SIZE_OPTIONS
-    ).filter(([n]) =>
+    return PAGE_SIZE_OPTIONS.filter(([n]) =>
       serverPagination ? getServerPagination(n) : n <= 2 * data.length,
     ) as SizeOption[];
   }, [data.length, rowCount, serverPagination]);
@@ -573,62 +543,52 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     return (
       <Dropdown
         placement="bottomRight"
-        open={showComparisonDropdown}
-        onOpenChange={(flag: boolean) => {
+        visible={showComparisonDropdown}
+        onVisibleChange={(flag: boolean) => {
           setShowComparisonDropdown(flag);
         }}
-        menu={{
-          multiple: true,
-          onClick: handleOnClick,
-          onBlur: handleOnBlur,
-          selectedKeys: selectedComparisonColumns,
-          items: [
-            {
-              key: 'all',
-              label: (
-                <div
+        overlay={
+          <Menu
+            multiple
+            onClick={handleOnClick}
+            onBlur={handleOnBlur}
+            selectedKeys={selectedComparisonColumns}
+          >
+            <div
+              css={css`
+                max-width: 242px;
+                padding: 0 ${theme.gridUnit * 2}px;
+                color: ${theme.colors.grayscale.base};
+                font-size: ${theme.typography.sizes.s}px;
+              `}
+            >
+              {t(
+                'Select columns that will be displayed in the table. You can multiselect columns.',
+              )}
+            </div>
+            {comparisonColumns.map(column => (
+              <Menu.Item key={column.key}>
+                <span
                   css={css`
-                    max-width: 242px;
-                    padding: 0 ${theme.sizeUnit * 2}px;
-                    color: ${theme.colorText};
-                    font-size: ${theme.fontSizeSM}px;
+                    color: ${theme.colors.grayscale.dark2};
                   `}
                 >
-                  {t(
-                    'Select columns that will be displayed in the table. You can multiselect columns.',
+                  {column.label}
+                </span>
+                <span
+                  css={css`
+                    float: right;
+                    font-size: ${theme.typography.sizes.s}px;
+                  `}
+                >
+                  {selectedComparisonColumns.includes(column.key) && (
+                    <CheckOutlined />
                   )}
-                </div>
-              ),
-              type: 'group',
-              children: comparisonColumns.map(
-                (column: { key: string; label: string }) => ({
-                  key: column.key,
-                  label: (
-                    <>
-                      <span
-                        css={css`
-                          color: ${theme.colorText};
-                        `}
-                      >
-                        {column.label}
-                      </span>
-                      <span
-                        css={css`
-                          float: right;
-                          font-size: ${theme.fontSizeSM}px;
-                        `}
-                      >
-                        {selectedComparisonColumns.includes(column.key) && (
-                          <CheckOutlined />
-                        )}
-                      </span>
-                    </>
-                  ),
-                }),
-              ),
-            },
-          ],
-        }}
+                </span>
+              </Menu.Item>
+            ))}
+          </Menu>
+        }
         trigger={['click']}
       >
         <span>
@@ -648,11 +608,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const startPosition = value[0];
       const colSpan = value.length;
       // Retrieve the originalLabel from the first column in this group
-      const firstColumnInGroup = filteredColumnsMeta[startPosition];
-      const originalLabel = firstColumnInGroup
-        ? columnsMeta.find(col => col.key === firstColumnInGroup.key)
-            ?.originalLabel || key
-        : key;
+      const originalLabel = columnsMeta[value[0]]?.originalLabel || key;
 
       // Add placeholder <th> for columns before this header
       for (let i = currentColumnIndex; i < startPosition; i += 1) {
@@ -673,7 +629,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             css={css`
               float: right;
               & svg {
-                color: ${theme.colorIcon} !important;
+                color: ${theme.colors.grayscale.base} !important;
               }
             `}
           >
@@ -704,7 +660,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       <tr
         css={css`
           th {
-            border-right: 1px solid ${theme.colorSplit};
+            border-right: 2px solid ${theme.colors.grayscale.light2};
           }
           th:first-child {
             border-left: none;
@@ -725,40 +681,16 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   );
 
   const getColumnConfigs = useCallback(
-    (
-      column: DataColumnMeta,
-      i: number,
-    ): ColumnWithLooseAccessor<D> & {
-      columnKey: string;
-    } => {
+    (column: DataColumnMeta, i: number): ColumnWithLooseAccessor<D> => {
       const {
         key,
-        label: originalLabel,
+        label,
+        isNumeric,
         dataType,
         isMetric,
         isPercentMetric,
         config = {},
       } = column;
-      const label = config.customColumnName || originalLabel;
-      let displayLabel = label;
-
-      const isComparisonColumn = ['#', '△', '%', t('Main')].includes(
-        column.label,
-      );
-
-      if (isComparisonColumn) {
-        if (column.label === t('Main')) {
-          displayLabel = config.customColumnName || column.originalLabel || '';
-        } else if (config.customColumnName) {
-          displayLabel =
-            config.displayTypeIcon !== false
-              ? `${column.label} ${config.customColumnName}`
-              : config.customColumnName;
-        } else if (config.displayTypeIcon === false) {
-          displayLabel = '';
-        }
-      }
-
       const columnWidth = Number.isNaN(Number(config.columnWidth))
         ? config.columnWidth
         : Number(config.columnWidth);
@@ -778,6 +710,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const { truncateLongCells } = config;
 
       const hasColumnColorFormatters =
+        isNumeric &&
         Array.isArray(columnColorFormatters) &&
         columnColorFormatters.length > 0;
 
@@ -785,6 +718,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         isUsingTimeComparison &&
         Array.isArray(basicColorFormatters) &&
         basicColorFormatters.length > 0;
+
       const valueRange =
         !hasBasicColorFormatters &&
         !hasColumnColorFormatters &&
@@ -814,7 +748,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         // must use custom accessor to allow `.` in column names
         // typing is incorrect in current version of `@types/react-table`
         // so we ask TS not to check.
-        columnKey: key,
         accessor: ((datum: D) => datum[key]) as never,
         Cell: ({ value, row }: { value: DataRecordValue; row: Row<D> }) => {
           const [isHtml, text] = formatColumnValue(column, value);
@@ -858,15 +791,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 ? basicColorColumnFormatters[row.index][column.key]?.mainArrow
                 : '';
           }
+
           const StyledCell = styled.td`
-            color: ${theme.colorText};
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
             background: ${backgroundColor || undefined};
-            padding-left: ${column.isChildColumn
-              ? `${theme.sizeUnit * 5}px`
-              : `${theme.sizeUnit}px`};
           `;
 
           const cellBarStyles = css`
@@ -889,7 +819,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 background-color: ${cellBackground({
                   value: value as number,
                   colorPositiveNegative,
-                  theme,
                 })};
               `}
           `;
@@ -898,9 +827,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             color: ${basicColorFormatters &&
             basicColorFormatters[row.index][originKey]?.arrowColor ===
               ColorSchemeEnum.Green
-              ? theme.colorSuccess
-              : theme.colorError};
-            margin-right: ${theme.sizeUnit}px;
+              ? theme.colors.success.base
+              : theme.colors.error.base};
+            margin-right: ${theme.gridUnit}px;
           `;
 
           if (
@@ -910,9 +839,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             arrowStyles = css`
               color: ${basicColorColumnFormatters[row.index][column.key]
                 ?.arrowColor === ColorSchemeEnum.Green
-                ? theme.colorSuccess
-                : theme.colorError};
-              margin-right: ${theme.sizeUnit}px;
+                ? theme.colors.success.base
+                : theme.colors.error.base};
+              margin-right: ${theme.gridUnit}px;
             `;
           }
 
@@ -944,10 +873,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             },
             className: [
               className,
-              value == null ||
-              (value instanceof DateWithFormatter && value.input == null)
-                ? 'dt-is-null'
-                : '',
+              value == null ? 'dt-is-null' : '',
               isActiveFilterValue(key, value) ? ' dt-is-active-filter' : '',
             ].join(' '),
             tabIndex: 0,
@@ -1004,7 +930,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         },
         Header: ({ column: col, onClick, style, onDragStart, onDrop }) => (
           <th
-            id={`header-${column.originalLabel}`}
+            id={`header-${column.key}`}
             title={t('Shift + Click to sort by multiple columns')}
             className={[className, col.isSorted ? 'is-sorted' : ''].join(' ')}
             style={{
@@ -1046,12 +972,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 alignItems: 'flex-end',
               }}
             >
-              <span data-column-name={col.id}>{displayLabel}</span>
+              <span data-column-name={col.id}>{label}</span>
               <SortIcon column={col} />
             </div>
           </th>
         ),
-
         Footer: totals ? (
           i === 0 ? (
             <th key={`footer-summary-${i}`}>
@@ -1060,8 +985,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   display: flex;
                   align-items: center;
                   & svg {
-                    margin-left: ${theme.sizeUnit}px;
-                    color: ${theme.colorBorder} !important;
+                    margin-left: ${theme.gridUnit}px;
+                    color: ${theme.colors.grayscale.dark1} !important;
                   }
                 `}
               >
@@ -1098,63 +1023,20 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       totals,
       columnColorFormatters,
       columnOrderToggle,
-      theme,
     ],
   );
 
-  const visibleColumnsMeta = useMemo(
-    () => filteredColumnsMeta.filter(col => col.config?.visible !== false),
-    [filteredColumnsMeta],
-  );
-
   const columns = useMemo(
-    () => visibleColumnsMeta.map(getColumnConfigs),
-    [visibleColumnsMeta, getColumnConfigs],
+    () => filteredColumnsMeta.map(getColumnConfigs),
+    [filteredColumnsMeta, getColumnConfigs],
   );
-
-  const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
-
-  useEffect(() => {
-    const options = (
-      columns as unknown as ColumnWithLooseAccessor &
-        {
-          columnKey: string;
-          sortType?: string;
-        }[]
-    )
-      .filter(col => col?.sortType === 'alphanumeric')
-      .map(column => ({
-        value: column.columnKey,
-        label: column.columnKey,
-      }));
-
-    if (!isEqual(options, searchOptions)) {
-      setSearchOptions(options || []);
-    }
-  }, [columns]);
 
   const handleServerPaginationChange = useCallback(
     (pageNumber: number, pageSize: number) => {
-      const modifiedOwnState = {
-        ...serverPaginationData,
-        currentPage: pageNumber,
-        pageSize,
-      };
-      updateTableOwnState(setDataMask, modifiedOwnState);
+      updateExternalFormData(setDataMask, pageNumber, pageSize);
     },
     [setDataMask],
   );
-
-  useEffect(() => {
-    if (hasServerPageLengthChanged) {
-      const modifiedOwnState = {
-        ...serverPaginationData,
-        currentPage: 0,
-        pageSize: serverPageLength,
-      };
-      updateTableOwnState(setDataMask, modifiedOwnState);
-    }
-  }, []);
 
   const handleSizeChange = useCallback(
     ({ width, height }: { width: number; height: number }) => {
@@ -1191,42 +1073,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const { width: widthFromState, height: heightFromState } = tableSize;
 
-  const handleSortByChange = useCallback(
-    (sortBy: SortByItem[]) => {
-      if (!serverPagination) return;
-      const modifiedOwnState = {
-        ...serverPaginationData,
-        sortBy,
-      };
-      updateTableOwnState(setDataMask, modifiedOwnState);
-    },
-    [setDataMask, serverPagination],
-  );
-
-  const handleSearch = (searchText: string) => {
-    const modifiedOwnState = {
-      ...(serverPaginationData || {}),
-      searchColumn:
-        serverPaginationData?.searchColumn || searchOptions[0]?.value,
-      searchText,
-      currentPage: 0, // Reset to first page when searching
-    };
-    updateTableOwnState(setDataMask, modifiedOwnState);
-  };
-
-  const debouncedSearch = debounce(handleSearch, 800);
-
-  const handleChangeSearchCol = (searchCol: string) => {
-    if (!isEqual(searchCol, serverPaginationData?.searchColumn)) {
-      const modifiedOwnState = {
-        ...(serverPaginationData || {}),
-        searchColumn: searchCol,
-        searchText: '',
-      };
-      updateTableOwnState(setDataMask, modifiedOwnState);
-    }
-  };
-
   return (
     <Styles>
       <DataTable<D>
@@ -1242,9 +1088,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         serverPagination={serverPagination}
         onServerPaginationChange={handleServerPaginationChange}
         onColumnOrderChange={() => setColumnOrderToggle(!columnOrderToggle)}
-        initialSearchText={serverPaginationData?.searchText || ''}
-        sortByFromParent={serverPaginationData?.sortBy || []}
-        searchInputId={`${slice_id}-search`}
         // 9 page items in > 340px works well even for 100+ pages
         maxPageItemCount={width > 340 ? 9 : 7}
         noResults={getNoResultsMessage}
@@ -1258,11 +1101,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         renderTimeComparisonDropdown={
           isUsingTimeComparison ? renderTimeComparisonDropdown : undefined
         }
-        handleSortByChange={handleSortByChange}
-        onSearchColChange={handleChangeSearchCol}
-        manualSearch={serverPagination}
-        onSearchChange={debouncedSearch}
-        searchOptions={searchOptions}
       />
     </Styles>
   );

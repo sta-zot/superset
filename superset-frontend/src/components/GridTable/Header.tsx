@@ -20,9 +20,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { styled, useTheme, t } from '@superset-ui/core';
 import type { Column, GridApi } from 'ag-grid-community';
 
-import { Icons } from '@superset-ui/core/components/Icons';
+import Icons from 'src/components/Icons';
 import { PIVOT_COL_ID } from './constants';
-import { HeaderMenu } from './HeaderMenu';
+import HeaderMenu from './HeaderMenu';
 
 interface Params {
   enableFilterButton?: boolean;
@@ -57,20 +57,21 @@ const SortSeqLabel = styled.span`
 const HeaderAction = styled.div`
   display: none;
   position: absolute;
-  right: 0;
+  right: ${({ theme }) => theme.gridUnit * 3}px;
   &.main {
-    flex-direction: row;
-    justify-content: center;
-    width: 100%;
+    margin: 0 auto;
+    left: 0;
+    right: 0;
+    width: 20px;
   }
   & .ant-dropdown-trigger {
     cursor: context-menu;
-    padding: ${({ theme }) => theme.sizeUnit * 2}px;
+    padding: ${({ theme }) => theme.gridUnit * 2}px;
     background-color: var(--ag-background-color);
     box-shadow: 0 0 2px var(--ag-chip-border-color);
     border-radius: 50%;
     &:hover {
-      box-shadow: 0 0 4px ${({ theme }) => theme.colorBorderSecondary};
+      box-shadow: 0 0 4px ${({ theme }) => theme.colors.grayscale.light1};
     }
   }
 `;
@@ -80,7 +81,7 @@ const IconPlaceholder = styled.div`
   top: 0;
 `;
 
-export const Header: React.FC<Params> = ({
+const Header: React.FC<Params> = ({
   enableFilterButton,
   enableSorting,
   displayName,
@@ -156,13 +157,13 @@ export const Header: React.FC<Params> = ({
                 {currentSort === 'asc' && (
                   <Icons.SortAsc
                     iconSize="xxl"
-                    iconColor={theme.colorPrimary}
+                    iconColor={theme.colors.primary.base}
                   />
                 )}
                 {currentSort === 'desc' && (
                   <Icons.SortDesc
                     iconSize="xxl"
-                    iconColor={theme.colorPrimary}
+                    iconColor={theme.colors.primary.base}
                   />
                 )}
               </IconPlaceholder>
@@ -195,3 +196,5 @@ export const Header: React.FC<Params> = ({
     </>
   );
 };
+
+export default Header;

@@ -32,7 +32,7 @@ export const DASHBOARD_INFO_UPDATED = 'DASHBOARD_INFO_UPDATED';
 export const DASHBOARD_INFO_FILTERS_CHANGED = 'DASHBOARD_INFO_FILTERS_CHANGED';
 
 // updates partially changed dashboard info
-export function dashboardInfoChanged(newInfo: Partial<DashboardInfo>) {
+export function dashboardInfoChanged(newInfo: { metadata: any }) {
   return { type: DASHBOARD_INFO_UPDATED, newInfo };
 }
 

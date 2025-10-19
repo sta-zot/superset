@@ -17,7 +17,6 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
 
 import Point from 'ol/geom/Point';
 import { View } from 'ol';
@@ -55,8 +54,6 @@ export const OlChartMap = (props: OlChartMapProps) => {
     setControlValue,
     theme,
   } = props;
-
-  const locale = useSelector((state: any) => state?.common?.locale);
 
   const [currentChartConfigs, setCurrentChartConfigs] =
     useState<ChartConfig>(chartConfigs);
@@ -363,7 +360,6 @@ export const OlChartMap = (props: OlChartMapProps) => {
         onMouseOver: deactivateInteractions,
         onMouseOut: activateInteractions,
         theme,
-        locale,
       });
 
       olMap.addLayer(newChartLayer);
@@ -397,7 +393,6 @@ export const OlChartMap = (props: OlChartMapProps) => {
     chartSize.values,
     chartBackgroundColor,
     chartBackgroundBorderRadius,
-    locale,
   ]);
 
   return (

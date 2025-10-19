@@ -30,13 +30,9 @@ import { LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import { URL_PARAMS } from 'src/constants';
 import { JsonObject, VizType } from '@superset-ui/core';
-import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { getParsedExploreURLParams } from 'src/explore/exploreUtils/getParsedExploreURLParams';
 import ChartPage from '.';
 
-jest.mock('src/hooks/useUnsavedChangesPrompt', () => ({
-  useUnsavedChangesPrompt: jest.fn(),
-}));
 jest.mock('re-resizable', () => ({
   Resizable: () => <div data-test="mock-re-resizable" />,
 }));
@@ -54,19 +50,7 @@ jest.mock('src/explore/exploreUtils/getParsedExploreURLParams', () => ({
   getParsedExploreURLParams: jest.fn(),
 }));
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ChartPage', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-
-    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
-      showModal: false,
-      setShowModal: jest.fn(),
-      handleConfirmNavigation: jest.fn(),
-      handleSaveAndCloseModal: jest.fn(),
-    });
-  });
-
   afterEach(() => {
     fetchMock.reset();
   });
@@ -161,6 +145,7 @@ describe('ChartPage', () => {
         id: expectedChartId,
         slice_name: expectedChartName,
         url: 'chartid',
+        owners: [{ userId: 1 }],
       },
     });
     const { getByTestId, getByText } = render(<ChartPage />, {
@@ -179,7 +164,6 @@ describe('ChartPage', () => {
     expect(getByText(expectedChartName)).toBeInTheDocument();
   });
 
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('with dashboardContextFormData', () => {
     const dashboardPageId = 'mockPageId';
 

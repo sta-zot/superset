@@ -20,8 +20,9 @@ from collections.abc import Iterator
 from datetime import datetime, timedelta
 
 from croniter import croniter
-from flask import current_app
 from pytz import timezone as pytz_timezone, UnknownTimeZoneError
+
+from superset import app
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ logger = logging.getLogger(__name__)
 def cron_schedule_window(
     triggered_at: datetime, cron: str, timezone: str
 ) -> Iterator[datetime]:
-    window_size = current_app.config["ALERT_REPORTS_CRON_WINDOW_SIZE"]
+    window_size = app.config["ALERT_REPORTS_CRON_WINDOW_SIZE"]
     try:
         tz = pytz_timezone(timezone)
     except UnknownTimeZoneError:

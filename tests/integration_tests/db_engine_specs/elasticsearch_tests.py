@@ -19,10 +19,10 @@ from sqlalchemy import column
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.elasticsearch import ElasticSearchEngineSpec
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
-class TestElasticsearchDbEngineSpec(SupersetTestCase):
+class TestElasticsearchDbEngineSpec(TestDbEngineSpec):
     @parameterized.expand(
         [
             [TimeGrain.SECOND, "DATE_TRUNC('second', ts)"],

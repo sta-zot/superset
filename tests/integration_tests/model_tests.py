@@ -35,13 +35,12 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.types import DateTime  # noqa: F401
 
 import tests.integration_tests.test_app  # noqa: F401
-from flask import current_app
-from superset import db as metadata_db
+from superset import app, db as metadata_db
 from superset.db_engine_specs.postgres import PostgresEngineSpec  # noqa: F401
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database
 from superset.models.slice import Slice
-from superset.sql.parse import Table
+from superset.sql_parse import Table
 from superset.utils.database import get_example_database
 
 from .base_tests import SupersetTestCase
@@ -448,14 +447,7 @@ class TestSqlaTableModel(SupersetTestCase):
             return None
         old_inner_join = spec.allows_joins
         spec.allows_joins = inner_join
-
-        # Use database-specific string concatenation syntax
-        arbitrary_gby = (
-            "CONCAT(state, gender, '_test')"
-            if get_example_database().backend == "mysql"
-            else "state || gender || '_test'"
-        )
-
+        arbitrary_gby = "state || gender || '_test'"
         arbitrary_metric = dict(  # noqa: C408
             label="arbitrary", expressionType="SQL", sqlExpression="SUM(num_boys)"
         )
@@ -527,11 +519,11 @@ class TestSqlaTableModel(SupersetTestCase):
         def mutator(*args, **kwargs):
             return "-- COMMENT\n" + args[0]
 
-        current_app.config["SQL_QUERY_MUTATOR"] = mutator
+        app.config["SQL_QUERY_MUTATOR"] = mutator
         sql = tbl.get_query_str(query_obj)
         assert "-- COMMENT" in sql
 
-        current_app.config["SQL_QUERY_MUTATOR"] = None
+        app.config["SQL_QUERY_MUTATOR"] = None
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_mutator_different_params(self):
@@ -553,12 +545,12 @@ class TestSqlaTableModel(SupersetTestCase):
         def mutator(sql, database=None, **kwargs):
             return "-- COMMENT\n--" + "\n" + str(database) + "\n" + sql
 
-        current_app.config["SQL_QUERY_MUTATOR"] = mutator
+        app.config["SQL_QUERY_MUTATOR"] = mutator
         mutated_sql = tbl.get_query_str(query_obj)
         assert "-- COMMENT" in mutated_sql
         assert tbl.database.name in mutated_sql
 
-        current_app.config["SQL_QUERY_MUTATOR"] = None
+        app.config["SQL_QUERY_MUTATOR"] = None
 
     def test_query_with_non_existent_metrics(self):
         tbl = self.get_table(name="birth_names")

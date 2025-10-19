@@ -19,8 +19,8 @@
 import { normalizeTimestamp, QueryState, t } from '@superset-ui/core';
 import { isEqual, omit } from 'lodash';
 import { shallowEqual } from 'react-redux';
-import { now } from '@superset-ui/core/utils/dates';
 import * as actions from '../actions/sqlLab';
+import { now } from '../../utils/dates';
 import {
   addToObject,
   alterInObject,
@@ -135,7 +135,7 @@ export default function sqlLabReducer(state = {}, action) {
       };
       let newState = removeFromArr(state, 'queryEditors', queryEditor);
       // List of remaining queryEditor ids
-      const qeIds = newState.queryEditors.map(qe => qe.tabViewId ?? qe.id);
+      const qeIds = newState.queryEditors.map(qe => qe.id);
 
       const queries = {};
       Object.keys(state.queries).forEach(k => {
@@ -150,8 +150,7 @@ export default function sqlLabReducer(state = {}, action) {
 
       // Remove associated table schemas
       const tables = state.tables.filter(
-        table =>
-          table.queryEditorId !== (queryEditor.tabViewId ?? queryEditor.id),
+        table => table.queryEditorId !== queryEditor.id,
       );
 
       newState = {
@@ -168,9 +167,7 @@ export default function sqlLabReducer(state = {}, action) {
         },
         destroyedQueryEditors: {
           ...newState.destroyedQueryEditors,
-          ...(!queryEditor.inLocalStorage && {
-            [queryEditor.tabViewId ?? queryEditor.id]: Date.now(),
-          }),
+          [queryEditor.id]: Date.now(),
         },
       };
       return newState;
@@ -320,17 +317,10 @@ export default function sqlLabReducer(state = {}, action) {
     },
     [actions.START_QUERY]() {
       let newState = { ...state };
-      let sqlEditorId;
       if (action.query.sqlEditorId) {
-        const queryEditorByTabId = getFromArr(
-          state.queryEditors,
-          action.query.sqlEditorId,
-          'tabViewId',
-        );
-        sqlEditorId = queryEditorByTabId?.id ?? action.query.sqlEditorId;
         const qe = {
-          ...getFromArr(state.queryEditors, sqlEditorId),
-          ...(sqlEditorId === state.unsavedQueryEditor.id &&
+          ...getFromArr(state.queryEditors, action.query.sqlEditorId),
+          ...(action.query.sqlEditorId === state.unsavedQueryEditor.id &&
             state.unsavedQueryEditor),
         };
         if (qe.latestQueryId && state.queries[qe.latestQueryId]) {
@@ -353,7 +343,7 @@ export default function sqlLabReducer(state = {}, action) {
           {
             latestQueryId: action.query.id,
           },
-          sqlEditorId,
+          action.query.sqlEditorId,
           action.query.isDataPreview,
         ),
       };
@@ -392,7 +382,6 @@ export default function sqlLabReducer(state = {}, action) {
         results: action.results,
         rows: action?.results?.query?.rows || 0,
         state: QueryState.Success,
-        executedSql: action?.results?.query?.executedSql,
         limitingFactor: action?.results?.query?.limitingFactor,
         tempSchema: action?.results?.query?.tempSchema,
         tempTable: action?.results?.query?.tempTable,
@@ -505,6 +494,12 @@ export default function sqlLabReducer(state = {}, action) {
         'tables',
         action.newTable,
       );
+    },
+    [actions.MIGRATE_TAB_HISTORY]() {
+      const tabHistory = state.tabHistory.map(tabId =>
+        tabId === action.oldId ? action.newId : tabId,
+      );
+      return { ...state, tabHistory };
     },
     [actions.MIGRATE_QUERY]() {
       const query = {

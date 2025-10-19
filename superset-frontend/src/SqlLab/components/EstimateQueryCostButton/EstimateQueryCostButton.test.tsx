@@ -33,10 +33,10 @@ import EstimateQueryCostButton, {
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 
-jest.mock('@superset-ui/core/components/Select/Select', () => () => (
+jest.mock('src/components/Select/Select', () => () => (
   <div data-test="mock-deprecated-select-select" />
 ));
-jest.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
+jest.mock('src/components/Select/AsyncSelect', () => () => (
   <div data-test="mock-deprecated-async-select" />
 ));
 
@@ -53,15 +53,14 @@ const setup = (props: Partial<EstimateQueryCostButtonProps>, store?: Store) =>
     },
   );
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('EstimateQueryCostButton', () => {
-  test('renders EstimateQueryCostButton', async () => {
+  it('renders EstimateQueryCostButton', async () => {
     const { queryByText } = setup({}, mockStore(initialState));
 
     expect(queryByText('Estimate cost')).toBeInTheDocument();
   });
 
-  test('renders label for selected query', async () => {
+  it('renders label for selected query', async () => {
     const { queryByText } = setup(
       { queryEditorId: extraQueryEditor1.id },
       mockStore(initialState),
@@ -70,7 +69,7 @@ describe('EstimateQueryCostButton', () => {
     expect(queryByText('Estimate selected query cost')).toBeInTheDocument();
   });
 
-  test('renders label for selected query from unsaved', async () => {
+  it('renders label for selected query from unsaved', async () => {
     const { queryByText } = setup(
       {},
       mockStore({
@@ -88,7 +87,7 @@ describe('EstimateQueryCostButton', () => {
     expect(queryByText('Estimate selected query cost')).toBeInTheDocument();
   });
 
-  test('renders estimation error result', async () => {
+  it('renders estimation error result', async () => {
     const { queryByText, getByText } = setup(
       {},
       mockStore({
@@ -110,7 +109,7 @@ describe('EstimateQueryCostButton', () => {
     expect(queryByText('Estimate error')).toBeInTheDocument();
   });
 
-  test('renders estimation success result', async () => {
+  it('renders estimation success result', async () => {
     const { queryByText, getByText } = setup(
       {},
       mockStore({

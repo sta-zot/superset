@@ -55,7 +55,6 @@ from superset.views.filters import (
     BaseFilterRelatedRoles,
     BaseFilterRelatedUsers,
     FilterRelatedOwners,
-    FilterRelatedTables,
 )
 
 logger = logging.getLogger(__name__)
@@ -136,7 +135,6 @@ class RLSRestApi(BaseSupersetModelRestApi):
 
     allowed_rel_fields = {"tables", "roles", "created_by", "changed_by"}
     related_field_filters = {
-        "tables": RelatedFieldFilter("table_name", FilterRelatedTables),
         "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
     base_related_field_filters = {
@@ -285,7 +283,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
 
         try:
             new_model = UpdateRLSRuleCommand(pk, item).run()
-            return self.response(200, id=new_model.id, result=item)
+            return self.response(201, id=new_model.id, result=item)
         except RolesNotFoundValidationError as ex:
             logger.error(
                 "Role not found while updating RLS rule %s: %s",

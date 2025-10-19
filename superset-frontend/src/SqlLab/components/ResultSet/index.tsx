@@ -25,26 +25,12 @@ import {
   MouseEvent,
 } from 'react';
 
-import AutoSizer from 'react-virtualized-auto-sizer';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import { pick } from 'lodash';
-import {
-  Alert,
-  Button,
-  ButtonGroup,
-  Tooltip,
-  Card,
-  Modal,
-  Input,
-  Label,
-  Loading,
-} from '@superset-ui/core/components';
-import {
-  CopyToClipboard,
-  FilterableTable,
-  ErrorMessageWithStackTrace,
-} from 'src/components';
+import ButtonGroup from 'src/components/ButtonGroup';
+import Alert from 'src/components/Alert';
+import Button from 'src/components/Button';
 import { nanoid } from 'nanoid';
 import {
   QueryState,
@@ -58,6 +44,7 @@ import {
   getExtensionsRegistry,
   ErrorTypeEnum,
 } from '@superset-ui/core';
+import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import {
   ISaveableDatasource,
   ISimpleColumn,
@@ -66,10 +53,17 @@ import {
 import { EXPLORE_CHART_DEFAULT, SqlLabRootState } from 'src/SqlLab/types';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
-import ProgressBar from '@superset-ui/core/components/ProgressBar';
+import ProgressBar from 'src/components/ProgressBar';
+import Loading from 'src/components/Loading';
+import Card from 'src/components/Card';
+import Label from 'src/components/Label';
+import { Tooltip } from 'src/components/Tooltip';
+import FilterableTable from 'src/components/FilterableTable';
+import CopyToClipboard from 'src/components/CopyToClipboard';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
+import Modal from 'src/components/Modal';
 import {
   addQueryEditor,
   clearQueryResults,
@@ -85,7 +79,7 @@ import {
   LOG_ACTIONS_SQLLAB_CREATE_CHART,
   LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV,
 } from 'src/logger/LogUtils';
-import { Icons } from '@superset-ui/core/components/Icons';
+import Icons from 'src/components/Icons';
 import { findPermission } from 'src/utils/findPermission';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
@@ -104,6 +98,7 @@ export interface ResultSetProps {
   csv?: boolean;
   database?: Record<string, any>;
   displayLimit: number;
+  height: number;
   queryId: string;
   search?: boolean;
   showSql?: boolean;
@@ -115,25 +110,24 @@ export interface ResultSetProps {
 const ResultContainer = styled.div`
   display: flex;
   flex-direction: column;
-  row-gap: ${({ theme }) => theme.sizeUnit * 2}px;
-  height: 100%;
+  row-gap: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 const ResultlessStyles = styled.div`
   position: relative;
-  min-height: ${({ theme }) => theme.sizeUnit * 25}px;
+  min-height: ${({ theme }) => theme.gridUnit * 25}px;
   [role='alert'] {
-    margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
+    margin-top: ${({ theme }) => theme.gridUnit * 2}px;
   }
   .sql-result-track-job {
-    margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
+    margin-top: ${({ theme }) => theme.gridUnit * 2}px;
   }
 `;
 
 // Making text render line breaks/tabs as is as monospace,
 // but wrapping text too so text doesn't overflow
 const MonospaceDiv = styled.div`
-  font-family: ${({ theme }) => theme.fontFamilyCode};
+  font-family: ${({ theme }) => theme.typography.families.monospace};
   white-space: pre;
   word-break: break-word;
   overflow-x: auto;
@@ -141,7 +135,7 @@ const MonospaceDiv = styled.div`
 `;
 
 const ReturnedRows = styled.div`
-  font-size: ${({ theme }) => theme.fontSizeSM}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
   line-height: 1;
 `;
 
@@ -153,16 +147,7 @@ const ResultSetControls = styled.div`
 const ResultSetButtons = styled.div`
   display: grid;
   grid-auto-flow: column;
-  padding-right: ${({ theme }) => 2 * theme.sizeUnit}px;
-`;
-
-const copyButtonStyles = css`
-  &:hover {
-    text-decoration: unset;
-  }
-  span > :first-of-type {
-    margin: 0px;
-  }
+  padding-right: ${({ theme }) => 2 * theme.gridUnit}px;
 `;
 
 const ROWS_CHIP_WIDTH = 100;
@@ -175,6 +160,7 @@ const ResultSet = ({
   csv = true,
   database = {},
   displayLimit,
+  height,
   queryId,
   search = true,
   showSql = false,
@@ -194,7 +180,6 @@ const ResultSet = ({
         'dbId',
         'tab',
         'sql',
-        'executedSql',
         'sqlEditorId',
         'templateParams',
         'schema',
@@ -222,6 +207,7 @@ const ResultSet = ({
   const [searchText, setSearchText] = useState('');
   const [cachedData, setCachedData] = useState<Record<string, unknown>[]>([]);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
+  const [alertIsOpen, setAlertIsOpen] = useState(false);
 
   const history = useHistory();
   const dispatch = useDispatch();
@@ -255,6 +241,14 @@ const ResultSet = ({
       fetchResults(query);
     }
   }, [query, cache]);
+
+  const calculateAlertRefHeight = (alertElement: HTMLElement | null) => {
+    if (alertElement) {
+      setAlertIsOpen(true);
+    } else {
+      setAlertIsOpen(false);
+    }
+  };
 
   const popSelectStar = (tempSchema: string | null, tempTable: string) => {
     const qe = {
@@ -348,9 +342,7 @@ const ResultSet = ({
             )}
             {csv && canExportData && (
               <Button
-                css={copyButtonStyles}
                 buttonSize="small"
-                buttonStyle="secondary"
                 href={getExportCsvUrl(query.id)}
                 data-test="export-csv-button"
                 onClick={() => {
@@ -369,7 +361,7 @@ const ResultSet = ({
                   }
                 }}
               >
-                <Icons.DownloadOutlined iconSize="m" /> {t('Download to CSV')}
+                <i className="fa fa-file-text-o" /> {t('Download to CSV')}
               </Button>
             )}
 
@@ -379,12 +371,10 @@ const ResultSet = ({
                 wrapped={false}
                 copyNode={
                   <Button
-                    css={copyButtonStyles}
                     buttonSize="small"
-                    buttonStyle="secondary"
                     data-test="copy-to-clipboard-button"
                   >
-                    <Icons.CopyOutlined iconSize="s" /> {t('Copy to Clipboard')}
+                    <i className="fa fa-clipboard" /> {t('Copy to Clipboard')}
                   </Button>
                 }
                 hideTooltip
@@ -395,7 +385,8 @@ const ResultSet = ({
             )}
           </ResultSetButtons>
           {search && (
-            <Input
+            <input
+              type="text"
               onChange={changeSearch}
               value={searchText}
               className="form-control input-sm"
@@ -463,10 +454,10 @@ const ResultSet = ({
       return (
         <>
           {!limitReached && shouldUseDefaultDropdownAlert && (
-            <div>
+            <div ref={calculateAlertRefHeight}>
               <Alert
-                closable
                 type="warning"
+                onClose={() => setAlertIsOpen(false)}
                 message={t(
                   'The number of rows displayed is limited to %(rows)d by the dropdown.',
                   { rows },
@@ -475,10 +466,10 @@ const ResultSet = ({
             </div>
           )}
           {limitReached && (
-            <div>
+            <div ref={calculateAlertRefHeight}>
               <Alert
-                closable
                 type="warning"
+                onClose={() => setAlertIsOpen(false)}
                 message={
                   isAdmin
                     ? displayMaxRowsReachedMessage.withAdmin
@@ -504,14 +495,14 @@ const ResultSet = ({
             >
               <Label
                 css={css`
-                  line-height: ${theme.fontSizeLG}px;
+                  line-height: ${theme.typography.sizes.l}px;
                 `}
               >
                 {limitMessage && (
                   <Icons.ExclamationCircleOutlined
                     css={css`
-                      font-size: ${theme.fontSize}px;
-                      margin-right: ${theme.sizeUnit}px;
+                      font-size: ${theme.typography.sizes.m}px;
+                      margin-right: ${theme.gridUnit}px;
                     `}
                   />
                 )}
@@ -524,6 +515,7 @@ const ResultSet = ({
     );
   };
 
+  const limitReached = query?.results?.displayLimitReached;
   let sql;
   let exploreDBId = query.dbId;
   if (database?.explore_database_id) {
@@ -554,7 +546,6 @@ const ResultSet = ({
     sql = (
       <HighlightedSql
         sql={query.sql}
-        rawSql={query.executedSql}
         {...(showSqlInline && { maxLines: 1, maxWidth: 60 })}
       />
     );
@@ -618,7 +609,7 @@ const ResultSet = ({
               <ButtonGroup>
                 <Button
                   buttonSize="small"
-                  css={{ marginRight: theme.sizeUnit }}
+                  css={{ marginRight: theme.gridUnit }}
                   onClick={() => popSelectStar(tempSchema, tempTable)}
                 >
                   {t('Query in a new tab')}
@@ -638,6 +629,17 @@ const ResultSet = ({
 
   if (query.state === QueryState.Success && query.results) {
     const { results } = query;
+    // Accounts for offset needed for height of ResultSetRowsReturned component if !limitReached
+    const rowMessageHeight = !limitReached ? 32 : 0;
+    // Accounts for offset needed for height of Alert if this.state.alertIsOpen
+    const alertContainerHeight = 70;
+    // We need to calculate the height of this.renderRowsReturned()
+    // if we want results panel to be proper height because the
+    // FilterTable component needs an explicit height to render
+    // the Table component
+    const rowsHeight = alertIsOpen
+      ? height - alertContainerHeight
+      : height - rowMessageHeight;
     let data;
     if (cache && query.cached) {
       data = cachedData;
@@ -661,7 +663,6 @@ const ResultSet = ({
                 css={css`
                   display: flex;
                   justify-content: space-between;
-                  align-items: center;
                   gap: ${GAP}px;
                 `}
               >
@@ -693,27 +694,15 @@ const ResultSet = ({
               {sql}
             </>
           )}
-          <div
-            css={css`
-              flex: 1 1 auto;
-            `}
-          >
-            <AutoSizer disableWidth>
-              {({ height }) => (
-                <ResultTable
-                  data={data}
-                  queryId={query.id}
-                  orderedColumnKeys={results.columns.map(
-                    col => col.column_name,
-                  )}
-                  height={height}
-                  filterText={searchText}
-                  expandedColumns={expandedColumns}
-                  allowHTML={allowHTML}
-                />
-              )}
-            </AutoSizer>
-          </div>
+          <ResultTable
+            data={data}
+            queryId={query.id}
+            orderedColumnKeys={results.columns.map(col => col.column_name)}
+            height={rowsHeight}
+            filterText={searchText}
+            expandedColumns={expandedColumns}
+            allowHTML={allowHTML}
+          />
         </ResultContainer>
       );
     }

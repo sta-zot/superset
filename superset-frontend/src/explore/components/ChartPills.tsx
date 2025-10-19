@@ -18,30 +18,24 @@
  */
 import { forwardRef, RefObject } from 'react';
 import { css, QueryData, SupersetTheme } from '@superset-ui/core';
-import {
-  CachedLabel,
-  type LabelType,
-  Timer,
-} from '@superset-ui/core/components';
-import RowCountLabel from 'src/components/RowCountLabel';
+import RowCountLabel from 'src/explore/components/RowCountLabel';
+import CachedLabel from 'src/components/CachedLabel';
+import Timer from 'src/components/Timer';
+import { Type } from 'src/components/Label';
 
 const CHART_STATUS_MAP = {
-  failed: 'danger' as LabelType,
-  loading: 'warning' as LabelType,
-  success: 'success' as LabelType,
-  rendered: 'default' as LabelType,
-  stopped: 'danger' as LabelType,
-  unknown: 'default' as LabelType,
+  failed: 'danger' as Type,
+  loading: 'warning' as Type,
+  success: 'success' as Type,
 };
 
 export type ChartPillsProps = {
-  queriesResponse?: QueryData[];
-  chartStatus?: keyof typeof CHART_STATUS_MAP;
+  queriesResponse: QueryData[];
+  chartStatus: keyof typeof CHART_STATUS_MAP;
   chartUpdateStartTime: number;
-  chartUpdateEndTime?: number;
+  chartUpdateEndTime: number;
   refreshCachedQuery: () => void;
-  rowLimit?: string | number;
-  hideRowCount?: boolean;
+  rowLimit: string | number;
 };
 
 export const ChartPills = forwardRef(
@@ -53,26 +47,27 @@ export const ChartPills = forwardRef(
       chartUpdateEndTime,
       refreshCachedQuery,
       rowLimit,
-      hideRowCount = false,
     }: ChartPillsProps,
     ref: RefObject<HTMLDivElement>,
   ) => {
     const isLoading = chartStatus === 'loading';
     const firstQueryResponse = queriesResponse?.[0];
-
     return (
       <div ref={ref}>
         <div
           css={(theme: SupersetTheme) => css`
             display: flex;
             justify-content: flex-end;
-            padding-bottom: ${theme.sizeUnit * 4}px;
+            padding-bottom: ${theme.gridUnit * 4}px;
+            & .ant-tag:last-of-type {
+              margin: 0;
+            }
           `}
         >
-          {!isLoading && !hideRowCount && firstQueryResponse && (
+          {!isLoading && firstQueryResponse && (
             <RowCountLabel
               rowcount={Number(firstQueryResponse.sql_rowcount) || 0}
-              limit={Number(rowLimit ?? 0)}
+              limit={Number(rowLimit) || 0}
             />
           )}
           {!isLoading && firstQueryResponse?.is_cached && (
@@ -85,7 +80,7 @@ export const ChartPills = forwardRef(
             startTime={chartUpdateStartTime}
             endTime={chartUpdateEndTime}
             isRunning={isLoading}
-            status={CHART_STATUS_MAP[chartStatus ?? 'unknown']}
+            status={CHART_STATUS_MAP[chartStatus]}
           />
         </div>
       </div>

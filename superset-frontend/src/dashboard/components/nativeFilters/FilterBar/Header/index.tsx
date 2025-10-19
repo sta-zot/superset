@@ -17,10 +17,10 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
-import { css, styled, t } from '@superset-ui/core';
+import { css, styled, t, useTheme } from '@superset-ui/core';
 import { memo, FC } from 'react';
-import { Icons } from '@superset-ui/core/components/Icons';
-import { Button } from '@superset-ui/core/components';
+import Icons from 'src/components/Icons';
+import Button from 'src/components/Button';
 import { getFilterBarTestId } from '../utils';
 import FilterBarSettings from '../FilterBarSettings';
 
@@ -31,12 +31,12 @@ const TitleArea = styled.div`
     flex-direction: row;
     justify-content: space-between;
     margin: 0;
-    padding: 0 ${theme.sizeUnit * 2}px ${theme.sizeUnit * 2}px;
+    padding: 0 ${theme.gridUnit * 2}px ${theme.gridUnit * 2}px;
 
     & > span {
-      font-size: ${theme.fontSizeLG}px;
+      font-size: ${theme.typography.sizes.l}px;
       flex-grow: 1;
-      font-weight: ${theme.fontWeightStrong};
+      font-weight: ${theme.typography.weights.bold};
     }
 
     & > div:first-of-type {
@@ -55,9 +55,12 @@ const HeaderButton = styled(Button)`
 
 const Wrapper = styled.div`
   ${({ theme }) => `
-    padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 2}px ${
-      theme.sizeUnit
+    padding: ${theme.gridUnit * 3}px ${theme.gridUnit * 2}px ${
+      theme.gridUnit
     }px;
+    .ant-dropdown-trigger span {
+      padding-right: ${theme.gridUnit * 2}px;
+    }
   `}
 `;
 
@@ -65,26 +68,25 @@ type HeaderProps = {
   toggleFiltersBar: (arg0: boolean) => void;
 };
 
-const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => (
-  <Wrapper>
-    <TitleArea>
-      <span>{t('Filters')}</span>
-      <FilterBarSettings />
-      <HeaderButton
-        {...getFilterBarTestId('collapse-button')}
-        buttonStyle="link"
-        buttonSize="xsmall"
-        onClick={() => toggleFiltersBar(false)}
-      >
-        <Icons.VerticalAlignTopOutlined
-          iconSize="xl"
-          css={css`
-            transform: rotate(-90deg);
-          `}
-        />
-      </HeaderButton>
-    </TitleArea>
-  </Wrapper>
-);
+const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
+  const theme = useTheme();
+
+  return (
+    <Wrapper>
+      <TitleArea>
+        <span>{t('Filters')}</span>
+        <FilterBarSettings />
+        <HeaderButton
+          {...getFilterBarTestId('collapse-button')}
+          buttonStyle="link"
+          buttonSize="xsmall"
+          onClick={() => toggleFiltersBar(false)}
+        >
+          <Icons.Expand iconColor={theme.colors.grayscale.base} />
+        </HeaderButton>
+      </TitleArea>
+    </Wrapper>
+  );
+};
 
 export default memo(Header);

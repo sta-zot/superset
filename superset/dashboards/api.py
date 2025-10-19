@@ -22,7 +22,7 @@ from io import BytesIO
 from typing import Any, Callable, cast
 from zipfile import is_zipfile, ZipFile
 
-from flask import current_app, g, redirect, request, Response, send_file, url_for
+from flask import g, redirect, request, Response, send_file, url_for
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -89,7 +89,6 @@ from superset.dashboards.schemas import (
     DashboardNativeFiltersConfigUpdateSchema,
     DashboardPostSchema,
     DashboardPutSchema,
-    DashboardScreenshotPostSchema,
     EmbeddedDashboardConfigSchema,
     EmbeddedDashboardResponseSchema,
     get_delete_ids_schema,
@@ -101,7 +100,6 @@ from superset.dashboards.schemas import (
     TabsPayloadSchema,
     thumbnail_query_schema,
 )
-from superset.exceptions import ScreenshotImageNotAvailableException
 from superset.extensions import event_logger
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
@@ -113,7 +111,6 @@ from superset.tasks.thumbnails import (
 from superset.tasks.utils import get_current_user
 from superset.utils import json
 from superset.utils.core import parse_boolean_string
-from superset.utils.file import get_filename
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import (
     DashboardScreenshot,
@@ -193,7 +190,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     list_columns = [
         "id",
-        "uuid",
         "published",
         "status",
         "slug",
@@ -243,7 +239,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "roles",
         "position_json",
         "css",
-        "theme_id",
         "json_metadata",
         "published",
     ]
@@ -254,13 +249,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "changed_by",
         "dashboard_title",
         "id",
-        "uuid",
         "owners",
         "published",
         "roles",
         "slug",
         "tags",
-        "uuid",
     )
     search_filters = {
         "dashboard_title": [DashboardTitleOrSlugFilter],
@@ -317,7 +310,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         TabsPayloadSchema,
         GetFavStarIdsSchema,
         EmbeddedDashboardResponseSchema,
-        DashboardScreenshotPostSchema,
     )
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
@@ -332,8 +324,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """Deterministic string representation of the API instance for etag_cache."""
         # pylint: disable=consider-using-f-string
         return "Superset.dashboards.api.DashboardRestApi@v{}{}".format(
-            current_app.config["VERSION_STRING"],
-            current_app.config["VERSION_SHA"],
+            self.appbuilder.app.config["VERSION_STRING"],
+            self.appbuilder.app.config["VERSION_SHA"],
         )
 
     @expose("/<id_or_slug>", methods=("GET",))
@@ -479,11 +471,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """  # noqa: E501
         try:
             tabs = DashboardDAO.get_tabs_for_dashboard(id_or_slug)
-            native_filters = DashboardDAO.get_native_filter_configuration(id_or_slug)
-
             result = self.tab_schema.dump(tabs)
-            result["native_filters"] = native_filters
-
             return self.response(200, result=result)
 
         except (TypeError, ValueError) as err:
@@ -1099,19 +1087,16 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             "urlParams": payload.get("urlParams", []),
         }
 
-        # if the permalink key is provided, dashboard_state will be ignored
-        # else, create a permalink key from the dashboard_state
-        permalink_key = (
-            payload.get("permalinkKey", None)
-            or CreateDashboardPermalinkCommand(
-                dashboard_id=str(dashboard.id),
-                state=dashboard_state,
-            ).run()
-        )
+        permalink_key = CreateDashboardPermalinkCommand(
+            dashboard_id=str(dashboard.id),
+            state=dashboard_state,
+        ).run()
 
         dashboard_url = get_url_path("Superset.dashboard_permalink", key=permalink_key)
         screenshot_obj = DashboardScreenshot(dashboard_url, dashboard.digest)
-        cache_key = screenshot_obj.get_cache_key(window_size, thumb_size, permalink_key)
+        cache_key = screenshot_obj.get_cache_key(
+            window_size, thumb_size, dashboard_state
+        )
         image_url = get_url_path(
             "DashboardRestApi.screenshot", pk=dashboard.id, digest=cache_key
         )
@@ -1205,14 +1190,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         # fetch the dashboard screenshot using the current user and cache if set
 
         if cache_payload := DashboardScreenshot.get_from_cache_key(digest):
-            try:
-                image = cache_payload.get_image()
-            except ScreenshotImageNotAvailableException:
+            image = cache_payload.get_image()
+            if not image:
                 return self.response_404()
-
-            filename = get_filename(
-                dashboard.dashboard_title or "screenshot", dashboard.id, skip_id=True
-            )
             if download_format == "pdf":
                 pdf_img = image.getvalue()
                 # Convert the screenshot to PDF
@@ -1221,18 +1201,13 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 return Response(
                     pdf_data,
                     mimetype="application/pdf",
-                    headers={
-                        "Content-Disposition": f'attachment; filename="{filename}.pdf"'
-                    },
+                    headers={"Content-Disposition": "inline; filename=dashboard.pdf"},
                     direct_passthrough=True,
                 )
             if download_format == "png":
                 return Response(
                     FileWrapper(image),
                     mimetype="image/png",
-                    headers={
-                        "Content-Disposition": f'attachment; filename="{filename}.png"'
-                    },
                     direct_passthrough=True,
                 )
         return self.response_404()
@@ -1340,14 +1315,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             )
 
         self.incr_stats("from_cache", self.thumbnail.__name__)
-        try:
-            image = cache_payload.get_image()
-            if not image or not hasattr(image, "read"):
-                return self.response_404()
-        except ScreenshotImageNotAvailableException:
-            return self.response_404()
         return Response(
-            FileWrapper(image),
+            FileWrapper(cache_payload.get_image()),
             mimetype="image/png",
             direct_passthrough=True,
         )
@@ -1407,7 +1376,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.add_favorite",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".add_favorite",
         log_to_statsd=False,
     )
     def add_favorite(self, pk: int) -> Response:

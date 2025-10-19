@@ -16,31 +16,49 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { css, t, useTheme } from '@superset-ui/core';
+import Alert from 'src/components/Alert';
 import { Dataset } from 'src/components/Chart/types';
-import MetadataBar from '@superset-ui/core/components/MetadataBar';
+import MetadataBar from 'src/components/MetadataBar';
 import {
   ContentType,
   MetadataType,
-} from '@superset-ui/core/components/MetadataBar/ContentType';
-import { isEmbedded } from 'src/dashboard/util/isEmbedded';
+} from 'src/components/MetadataBar/ContentType';
+import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
+import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 
-export interface UseDatasetMetadataBarProps {
-  dataset?: Dataset;
-}
-
+export type UseDatasetMetadataBarProps =
+  | { datasetId?: undefined; dataset: Dataset }
+  | { datasetId: number | string; dataset?: undefined };
 export const useDatasetMetadataBar = ({
-  dataset,
-}: UseDatasetMetadataBarProps): { metadataBar: React.ReactElement | null } => {
+  dataset: datasetProps,
+  datasetId,
+}: UseDatasetMetadataBarProps) => {
   const theme = useTheme();
+  const [result, setResult] = useState<Dataset>();
+  const [status, setStatus] = useState<ResourceStatus>(
+    datasetProps ? ResourceStatus.Complete : ResourceStatus.Loading,
+  );
+
+  useEffect(() => {
+    if (!datasetProps && datasetId) {
+      cachedSupersetGet({
+        endpoint: `/api/v1/dataset/${datasetId}`,
+      })
+        .then(({ json: { result } }) => {
+          setResult(result);
+          setStatus(ResourceStatus.Complete);
+        })
+        .catch(() => {
+          setStatus(ResourceStatus.Error);
+        });
+    }
+  }, [datasetId, datasetProps]);
 
   const metadataBar = useMemo(() => {
-    // Short-circuit for embedded users - they don't need metadata bar
-    if (isEmbedded()) {
-      return null;
-    }
     const items: ContentType[] = [];
+    const dataset = datasetProps || result;
     if (dataset) {
       const {
         changed_on_humanized,
@@ -60,23 +78,23 @@ export const useDatasetMetadataBar = ({
         ? `${changed_by.first_name} ${changed_by.last_name}`
         : notAvailable;
       const formattedOwners =
-        owners && owners.length > 0
+        owners?.length > 0
           ? owners.map(owner => `${owner.first_name} ${owner.last_name}`)
           : [notAvailable];
       items.push({
         type: MetadataType.Table,
-        title: table_name || notAvailable,
+        title: table_name,
       });
       items.push({
         type: MetadataType.LastModified,
-        value: changed_on_humanized || notAvailable,
+        value: changed_on_humanized,
         modifiedBy,
       });
       items.push({
         type: MetadataType.Owner,
         createdBy,
         owners: formattedOwners,
-        createdOn: created_on_humanized || notAvailable,
+        createdOn: created_on_humanized,
       });
       if (description) {
         items.push({
@@ -89,17 +107,24 @@ export const useDatasetMetadataBar = ({
       <div
         css={css`
           display: flex;
-          margin-bottom: ${theme.sizeUnit * 4}px;
+          margin-bottom: ${theme.gridUnit * 4}px;
         `}
       >
-        {items.length > 0 && (
+        {status === ResourceStatus.Complete && (
           <MetadataBar items={items} tooltipPlacement="bottom" />
+        )}
+        {status === ResourceStatus.Error && (
+          <Alert
+            type="error"
+            message={t('There was an error loading the dataset metadata')}
+          />
         )}
       </div>
     );
-  }, [dataset, theme.sizeUnit]);
+  }, [datasetProps, result, status, theme.gridUnit]);
 
   return {
     metadataBar,
+    status,
   };
 };

@@ -27,12 +27,12 @@ import {
   t,
   SqlaFormData,
   ClientErrorObject,
-  type JsonObject,
+  ChartDataResponse,
 } from '@superset-ui/core';
-import type { ChartState, Datasource, ChartStatus } from 'src/explore/types';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
-import { EmptyState, Loading } from '@superset-ui/core/components';
-import { ErrorBoundary } from 'src/components';
+import Loading from 'src/components/Loading';
+import { EmptyState } from 'src/components/EmptyState';
+import ErrorBoundary from 'src/components/ErrorBoundary';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
@@ -40,16 +40,21 @@ import { isCurrentUserBot } from 'src/utils/isBot';
 import { ChartSource } from 'src/types/ChartSource';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { Dispatch } from 'redux';
+import { Annotation } from 'src/explore/components/controls/AnnotationLayerControl';
 import ChartRenderer from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
 import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
 
 export type ChartErrorType = Partial<ClientErrorObject>;
 export interface ChartProps {
-  annotationData?: JsonObject;
+  annotationData?: Annotation;
   actions: Actions;
-  chartId: number;
-  datasource?: Datasource;
+  chartId: string;
+  datasource?: {
+    database?: {
+      name: string;
+    };
+  };
   dashboardId?: number;
   initialValues?: object;
   formData: QueryFormData;
@@ -64,18 +69,17 @@ export interface ChartProps {
   force?: boolean;
   isFiltersInitialized?: boolean;
   chartAlert?: string;
-  chartStatus?: ChartStatus;
+  chartStatus?: string;
   chartStackTrace?: string;
-  queriesResponse: ChartState['queriesResponse'];
-  latestQueryFormData?: ChartState['latestQueryFormData'];
+  queriesResponse: ChartDataResponse[];
   triggerQuery?: boolean;
   chartIsStale?: boolean;
   errorMessage?: React.ReactNode;
   addFilter?: (type: string) => void;
   onQuery?: () => void;
-  onFilterMenuOpen?: (chartId: number, column: string) => void;
-  onFilterMenuClose?: (chartId: number, column: string) => void;
-  ownState?: JsonObject;
+  onFilterMenuOpen?: (chartId: string, column: string) => void;
+  onFilterMenuClose?: (chartId: string, column: string) => void;
+  ownState: boolean;
   postTransformProps?: Function;
   datasetsStatus?: 'loading' | 'error' | 'complete';
   isInView?: boolean;
@@ -86,7 +90,7 @@ export type Actions = {
   logEvent(
     LOG_ACTIONS_RENDER_CHART: string,
     arg1: {
-      slice_id: number;
+      slice_id: string;
       has_err: boolean;
       error_details: string;
       start_offset: number;
@@ -96,16 +100,16 @@ export type Actions = {
   ): Dispatch;
   chartRenderingFailed(
     arg0: string,
-    chartId: number,
+    chartId: string,
     arg2: string | null,
   ): Dispatch;
   postChartFormData(
     formData: SqlaFormData,
     arg1: boolean,
     timeout: number | undefined,
-    chartId: number,
+    chartId: string,
     dashboardId: number | undefined,
-    ownState: JsonObject | undefined,
+    ownState: boolean,
   ): Dispatch;
 };
 const BLANK = {};
@@ -132,7 +136,7 @@ const Styles = styled.div<{ height: number; width?: number }>`
 
   .chart-tooltip {
     opacity: 0.75;
-    font-size: ${({ theme }) => theme.fontSizeSM}px;
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
   }
 
   .slice_container {
@@ -147,7 +151,7 @@ const Styles = styled.div<{ height: number; width?: number }>`
     }
 
     .alert {
-      margin: ${({ theme }) => theme.sizeUnit * 2}px;
+      margin: ${({ theme }) => theme.gridUnit * 2}px;
     }
   }
 `;
@@ -163,9 +167,9 @@ const LoadingDiv = styled.div`
 const MessageSpan = styled.span`
   display: block;
   text-align: center;
-  margin: ${({ theme }) => theme.sizeUnit * 4}px auto;
+  margin: ${({ theme }) => theme.gridUnit * 4}px auto;
   width: fit-content;
-  color: ${({ theme }) => theme.colorText};
+  color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
 class Chart extends PureComponent<ChartProps, {}> {
@@ -253,10 +257,7 @@ class Chart extends PureComponent<ChartProps, {}> {
           data-test="chart-container"
           height={height}
         >
-          <Loading
-            size={this.props.dashboardId ? 's' : 'm'}
-            muted={!!this.props.dashboardId}
-          />
+          <Loading />
         </Styles>
       );
     }
@@ -281,11 +282,7 @@ class Chart extends PureComponent<ChartProps, {}> {
 
     return (
       <LoadingDiv>
-        <Loading
-          position="inline-centered"
-          size={this.props.dashboardId ? 's' : 'm'}
-          muted={!!this.props.dashboardId}
-        />
+        <Loading position="inline-centered" />
         <MessageSpan>{message}</MessageSpan>
       </LoadingDiv>
     );
@@ -303,10 +300,7 @@ class Chart extends PureComponent<ChartProps, {}> {
             data-test={this.props.vizType}
           />
         ) : (
-          <Loading
-            size={this.props.dashboardId ? 's' : 'm'}
-            muted={!!this.props.dashboardId}
-          />
+          <Loading />
         )}
       </div>
     );
@@ -324,12 +318,12 @@ class Chart extends PureComponent<ChartProps, {}> {
       width,
     } = this.props;
 
-    const databaseName = datasource?.database?.name as string | undefined;
+    const databaseName = datasource?.database?.name;
 
     const isLoading = chartStatus === 'loading';
 
     if (chartStatus === 'failed') {
-      return queriesResponse?.map(item =>
+      return queriesResponse.map(item =>
         this.renderErrorMessage(item as ChartErrorType),
       );
     }

@@ -17,9 +17,10 @@
  * under the License.
  */
 import { isValidElement } from 'react';
-import { render, screen } from '@superset-ui/core/spec';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@superset-ui/core';
+
 import { ColumnTypeLabel, ColumnTypeLabelProps } from '../../src';
 
 describe('ColumnOption', () => {

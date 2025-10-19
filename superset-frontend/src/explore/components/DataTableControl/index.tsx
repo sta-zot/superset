@@ -19,6 +19,7 @@
 import { useMemo, useState, useEffect, useRef, RefObject } from 'react';
 import {
   css,
+  GenericDataType,
   getTimeFormatter,
   safeHtmlSpan,
   styled,
@@ -26,35 +27,38 @@ import {
   TimeFormats,
   useTheme,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { Global } from '@emotion/react';
 import { Column } from 'react-table';
 import { debounce } from 'lodash';
+import { Input } from 'src/components/Input';
 import {
-  Constants,
-  Button,
-  Icons,
-  Input,
-  Popover,
-  Radio,
-} from '@superset-ui/core/components';
-import { CopyToClipboard } from 'src/components';
+  BOOL_FALSE_DISPLAY,
+  BOOL_TRUE_DISPLAY,
+  NULL_DISPLAY,
+  SLOW_DEBOUNCE,
+} from 'src/constants';
+import { Radio } from 'src/components/Radio';
+import Icons from 'src/components/Icons';
+import Button from 'src/components/Button';
+import Popover from 'src/components/Popover';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
+import CopyToClipboard from 'src/components/CopyToClipboard';
 import { getTimeColumns, setTimeColumns } from './utils';
 
 export const CellNull = styled('span')`
-  color: ${({ theme }) => theme.colorTextTertiary};
+  color: ${({ theme }) => theme.colors.grayscale.light1};
 `;
 
 export const CopyButton = styled(Button)`
-  font-size: ${({ theme }) => theme.fontSizeSM}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
 
   // needed to override button's first-of-type margin: 0
   && {
-    margin: 0 ${({ theme }) => theme.sizeUnit * 2}px;
+    margin: 0 ${({ theme }) => theme.gridUnit * 2}px;
   }
 
   i {
-    padding: 0 ${({ theme }) => theme.sizeUnit}px;
+    padding: 0 ${({ theme }) => theme.gridUnit}px;
   }
 `;
 
@@ -64,26 +68,30 @@ export const CopyToClipboardButton = ({
 }: {
   data?: Record<string, any>;
   columns?: string[];
-}) => (
-  <CopyToClipboard
-    text={
-      data && columns ? prepareCopyToClipboardTabularData(data, columns) : ''
-    }
-    wrapped={false}
-    copyNode={
-      <Icons.CopyOutlined
-        iconSize="l"
-        aria-label={t('Copy')}
-        role="button"
-        css={css`
-          &.anticon > * {
-            line-height: 0;
-          }
-        `}
-      />
-    }
-  />
-);
+}) => {
+  const theme = useTheme();
+  return (
+    <CopyToClipboard
+      text={
+        data && columns ? prepareCopyToClipboardTabularData(data, columns) : ''
+      }
+      wrapped={false}
+      copyNode={
+        <Icons.CopyOutlined
+          iconColor={theme.colors.grayscale.base}
+          iconSize="l"
+          aria-label={t('Copy')}
+          role="button"
+          css={css`
+            &.anticon > * {
+              line-height: 0;
+            }
+          `}
+        />
+      }
+    />
+  );
+};
 
 export const FilterInput = ({
   onChangeHandler,
@@ -102,13 +110,10 @@ export const FilterInput = ({
   }, []);
 
   const theme = useTheme();
-  const debouncedChangeHandler = debounce(
-    onChangeHandler,
-    Constants.SLOW_DEBOUNCE,
-  );
+  const debouncedChangeHandler = debounce(onChangeHandler, SLOW_DEBOUNCE);
   return (
     <Input
-      prefix={<Icons.SearchOutlined iconSize="l" />}
+      prefix={<Icons.Search iconColor={theme.colors.grayscale.base} />}
       placeholder={t('Search')}
       onChange={(event: any) => {
         const filterText = event.target.value;
@@ -116,7 +121,7 @@ export const FilterInput = ({
       }}
       css={css`
         width: 200px;
-        margin-right: ${theme.sizeUnit * 2}px;
+        margin-right: ${theme.gridUnit * 2}px;
       `}
       ref={inputRef}
     />
@@ -156,13 +161,13 @@ const FormatPickerContainer = styled.div`
   display: flex;
   flex-direction: column;
 
-  padding: ${({ theme }) => `${theme.sizeUnit * 4}px`};
+  padding: ${({ theme }) => `${theme.gridUnit * 4}px`};
 `;
 
 const FormatPickerLabel = styled.span`
-  font-size: ${({ theme }) => theme.fontSizeSM}px;
-  color: ${({ theme }) => theme.colorText};
-  margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  color: ${({ theme }) => theme.colors.grayscale.base};
+  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 const DataTableTemporalHeaderCell = ({
@@ -188,10 +193,15 @@ const DataTableTemporalHeaderCell = ({
   const overlayContent = useMemo(
     () =>
       datasourceId ? ( // eslint-disable-next-line jsx-a11y/no-static-element-interactions
-        <FormatPickerContainer
-          onClick={(e: React.MouseEvent<HTMLElement>) => e.stopPropagation()}
-        >
+        <FormatPickerContainer onClick={e => e.stopPropagation()}>
           {/* hack to disable click propagation from popover content to table header, which triggers sorting column */}
+          <Global
+            styles={css`
+              .column-formatting-popover .ant-popover-inner-content {
+                padding: 0;
+              }
+            `}
+          />
           <FormatPickerLabel>{t('Column Formatting')}</FormatPickerLabel>
           <FormatPicker
             onChange={onChange}
@@ -209,16 +219,17 @@ const DataTableTemporalHeaderCell = ({
   return datasourceId ? (
     <span>
       <Popover
+        overlayClassName="column-formatting-popover"
         trigger="click"
         content={overlayContent}
         placement="bottomLeft"
-        arrow={{ pointAtCenter: true }}
+        arrowPointAtCenter
       >
         <Icons.SettingOutlined
           iconSize="m"
-          iconColor={theme.colorIcon}
-          css={{ marginRight: `${theme.sizeUnit}px` }}
-          onClick={(e: React.MouseEvent<HTMLElement>) => e.stopPropagation()}
+          iconColor={theme.colors.grayscale.light1}
+          css={{ marginRight: `${theme.gridUnit}px` }}
+          onClick={e => e.stopPropagation()}
         />
       </Popover>
       {columnName}
@@ -332,13 +343,13 @@ export const useTableColumns = (
                   ),
                 Cell: ({ value }) => {
                   if (value === true) {
-                    return Constants.BOOL_TRUE_DISPLAY;
+                    return BOOL_TRUE_DISPLAY;
                   }
                   if (value === false) {
-                    return Constants.BOOL_FALSE_DISPLAY;
+                    return BOOL_FALSE_DISPLAY;
                   }
                   if (value === null) {
-                    return <CellNull>{Constants.NULL_DISPLAY}</CellNull>;
+                    return <CellNull>{NULL_DISPLAY}</CellNull>;
                   }
                   if (
                     colType === GenericDataType.Temporal &&

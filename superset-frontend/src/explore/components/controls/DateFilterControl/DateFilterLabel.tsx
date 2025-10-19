@@ -27,16 +27,15 @@ import {
   useCSSTextTruncation,
   fetchTimeRange,
 } from '@superset-ui/core';
-import {
-  Button,
-  Constants,
-  Divider,
-  Tooltip,
-  Select,
-} from '@superset-ui/core/components';
+import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import { Icons } from '@superset-ui/core/components/Icons';
+import Modal from 'src/components/Modal';
+import { Divider } from 'src/components/Divider';
+import Icons from 'src/components/Icons';
+import Select from 'src/components/Select/Select';
+import { Tooltip } from 'src/components/Tooltip';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
+import { SLOW_DEBOUNCE } from 'src/constants';
 import { noOp } from 'src/utils/common';
 import ControlPopover from '../ControlPopover/ControlPopover';
 
@@ -66,24 +65,31 @@ const ContentStyleWrapper = styled.div`
       margin-top: 8px;
     }
 
+    .antd5-input-number {
+      width: 100%;
+    }
+
     .ant-picker {
       padding: 4px 17px 4px;
       border-radius: 4px;
+      width: 100%;
     }
 
-    .ant-divider-horizontal {
+    .antd5-divider-horizontal {
       margin: 16px 0;
     }
 
     .control-label {
-      font-size: ${theme.fontSizeSM}px;
+      font-size: 11px;
+      font-weight: ${theme.typography.weights.medium};
+      color: ${theme.colors.grayscale.light2};
       line-height: 16px;
       margin: 8px 0;
     }
 
     .section-title {
       font-style: normal;
-      font-weight: ${theme.fontWeightStrong};
+      font-weight: ${theme.typography.weights.bold};
       font-size: 15px;
       line-height: 24px;
       margin-bottom: 8px;
@@ -105,14 +111,14 @@ const ContentStyleWrapper = styled.div`
 
 const IconWrapper = styled.span`
   span {
-    margin-right: ${({ theme }) => 2 * theme.sizeUnit}px;
+    margin-right: ${({ theme }) => 2 * theme.gridUnit}px;
     vertical-align: middle;
   }
   .text {
     vertical-align: middle;
   }
   .error {
-    color: ${({ theme }) => theme.colorError};
+    color: ${({ theme }) => theme.colors.error.base};
   }
 `;
 
@@ -127,7 +133,7 @@ const getTooltipTitle = (
       {range && (
         <div
           css={(theme: SupersetTheme) => css`
-            margin-top: ${theme.sizeUnit}px;
+            margin-top: ${theme.gridUnit}px;
           `}
         >
           {range}
@@ -144,6 +150,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     onChange,
     onOpenPopover = noOp,
     onClosePopover = noOp,
+    overlayStyle = 'Popover',
     isOverflowingFilterBar = false,
   } = props;
   const defaultTimeFilter = useDefaultTimeFilter();
@@ -230,7 +237,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         });
       }
     },
-    Constants.SLOW_DEBOUNCE,
+    SLOW_DEBOUNCE,
     [timeRangeValue],
   );
 
@@ -271,9 +278,9 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
 
   const overlayContent = (
     <ContentStyleWrapper>
-      <div className="control-label">{t('Range type')}</div>
+      <div className="control-label">{t('RANGE TYPE')}</div>
       <StyledRangeType
-        ariaLabel={t('Range type')}
+        ariaLabel={t('RANGE TYPE')}
         options={FRAME_OPTIONS}
         value={frame}
         onChange={onChangeFrame}
@@ -312,7 +319,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         )}
         {!validTimeRange && (
           <IconWrapper className="warning">
-            <Icons.ExclamationCircleOutlined iconColor={theme.colorError} />
+            <Icons.ErrorSolidSmall iconColor={theme.colors.error.base} />
             <span className="text error">{evalResponse}</span>
           </IconWrapper>
         )}
@@ -342,29 +349,29 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     </ContentStyleWrapper>
   );
 
+  const title = (
+    <IconWrapper>
+      <Icons.EditAlt iconColor={theme.colors.grayscale.base} />
+      <span className="text">{t('Edit time range')}</span>
+    </IconWrapper>
+  );
+
   const popoverContent = (
     <ControlPopover
-      autoAdjustOverflow={false}
-      trigger="click"
       placement="right"
+      trigger="click"
       content={overlayContent}
-      title={
-        <IconWrapper>
-          <Icons.EditOutlined />
-          <span className="text">{t('Edit time range')}</span>
-        </IconWrapper>
-      }
-      defaultOpen={show}
-      open={show}
-      onOpenChange={toggleOverlay}
+      title={title}
+      defaultVisible={show}
+      visible={show}
+      onVisibleChange={toggleOverlay}
       overlayStyle={{ width: '600px' }}
-      destroyTooltipOnHide
-      getPopupContainer={nodeTrigger =>
+      getPopupContainer={triggerNode =>
         isOverflowingFilterBar
-          ? (nodeTrigger.parentNode as HTMLElement)
+          ? (triggerNode.parentNode as HTMLElement)
           : document.body
       }
-      overlayClassName="time-range-popover"
+      destroyTooltipOnHide
     >
       <Tooltip placement="top" title={tooltipTitle}>
         <DateLabel
@@ -381,10 +388,39 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     </ControlPopover>
   );
 
+  const modalContent = (
+    <>
+      <Tooltip placement="top" title={tooltipTitle}>
+        <DateLabel
+          name={name}
+          aria-labelledby={`filter-name-${props.name}`}
+          aria-describedby={`date-label-${props.name}`}
+          onClick={toggleOverlay}
+          label={actualTimeRange}
+          isActive={show}
+          isPlaceholder={actualTimeRange === NO_TIME_RANGE}
+          data-test={DateFilterTestKey.ModalOverlay}
+          ref={labelRef}
+        />
+      </Tooltip>
+      {/* the zIndex value is from trying so that the Modal doesn't overlay the AdhocFilter */}
+      <Modal
+        title={title}
+        show={show}
+        onHide={toggleOverlay}
+        width="600px"
+        hideFooter
+        zIndex={1030}
+      >
+        {overlayContent}
+      </Modal>
+    </>
+  );
+
   return (
     <>
       <ControlHeader {...props} />
-      {popoverContent}
+      {overlayStyle === 'Modal' ? modalContent : popoverContent}
     </>
   );
 }

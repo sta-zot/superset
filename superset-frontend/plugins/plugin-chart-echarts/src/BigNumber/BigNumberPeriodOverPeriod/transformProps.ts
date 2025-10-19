@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { Metric } from '@superset-ui/chart-controls';
 import {
   ChartProps,
@@ -25,15 +27,9 @@ import {
   SimpleAdhocFilter,
   ensureIsArray,
 } from '@superset-ui/core';
-import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
-import 'dayjs/plugin/utc';
-import {
-  getComparisonFontSize,
-  getHeaderFontSize,
-  getMetricNameFontSize,
-} from './utils';
+import { getComparisonFontSize, getHeaderFontSize } from './utils';
 
-import { getOriginalLabel } from '../utils';
+dayjs.extend(utc);
 
 export const parseMetricValue = (metricValue: number | string | null) => {
   if (typeof metricValue === 'string') {
@@ -88,23 +84,16 @@ export default function transformProps(chartProps: ChartProps) {
     headerFontSize,
     headerText,
     metric,
-    metricNameFontSize,
     yAxisFormat,
     currencyFormat,
     subheaderFontSize,
     comparisonColorScheme,
     comparisonColorEnabled,
     percentDifferenceFormat,
-    subtitle = '',
-    subtitleFontSize,
-    columnConfig = {},
   } = formData;
   const { data: dataA = [] } = queriesData[0];
   const data = dataA;
   const metricName = metric ? getMetricLabel(metric) : '';
-  const metrics = chartProps.datasource?.metrics || [];
-  const originalLabel = getOriginalLabel(metric, metrics);
-  const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
   const timeComparison = ensureIsArray(chartProps.rawFormData?.time_compare)[0];
   const startDateOffset = chartProps.rawFormData?.start_date_offset;
   const currentTimeRangeFilter = chartProps.rawFormData?.adhoc_filters?.filter(
@@ -195,16 +184,12 @@ export default function transformProps(chartProps: ChartProps) {
     width,
     height,
     data,
-    metricName: originalLabel,
+    metricName,
     bigNumber,
     prevNumber,
     valueDifference,
     percentDifferenceFormattedString: percentDifference,
     boldText,
-    subtitle,
-    subtitleFontSize,
-    showMetricName,
-    metricNameFontSize: getMetricNameFontSize(metricNameFontSize),
     headerFontSize: getHeaderFontSize(headerFontSize),
     subheaderFontSize: getComparisonFontSize(subheaderFontSize),
     headerText,
@@ -216,6 +201,5 @@ export default function transformProps(chartProps: ChartProps) {
     startDateOffset,
     shift: timeComparison,
     dashboardTimeRange: formData?.extraFormData?.time_range,
-    columnConfig,
   };
 }

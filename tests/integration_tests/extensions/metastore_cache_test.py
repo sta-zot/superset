@@ -26,9 +26,7 @@ from flask.ctx import AppContext
 from freezegun import freeze_time
 
 from superset.extensions.metastore_cache import SupersetMetastoreCache
-from superset.key_value.exceptions import (
-    KeyValueCreateFailedError,
-)
+from superset.key_value.exceptions import KeyValueCodecEncodeException
 from superset.key_value.types import (
     JsonKeyValueCodec,
     KeyValueCodec,
@@ -55,10 +53,6 @@ def cache() -> SupersetMetastoreCache:
 
 
 def test_caching_flow(app_context: AppContext, cache: SupersetMetastoreCache) -> None:
-    # Clean up any existing keys first to ensure idempotency
-    cache.delete(FIRST_KEY)
-    cache.delete(SECOND_KEY)
-
     assert cache.has(FIRST_KEY) is False
     assert cache.add(FIRST_KEY, FIRST_KEY_INITIAL_VALUE) is True
     assert cache.has(FIRST_KEY) is True
@@ -76,14 +70,8 @@ def test_caching_flow(app_context: AppContext, cache: SupersetMetastoreCache) ->
     assert cache.has(SECOND_KEY)
     assert cache.get(SECOND_KEY) == SECOND_VALUE
 
-    # Clean up after test as well for good measure
-    cache.delete(SECOND_KEY)
-
 
 def test_expiry(app_context: AppContext, cache: SupersetMetastoreCache) -> None:
-    # Clean up any existing keys first to ensure idempotency
-    cache.delete(FIRST_KEY)
-
     delta = timedelta(days=90)
     dttm = datetime(2022, 3, 18, 0, 0, 0)
 
@@ -109,16 +97,13 @@ def test_expiry(app_context: AppContext, cache: SupersetMetastoreCache) -> None:
         assert cache.add(FIRST_KEY, SECOND_VALUE, int(delta.total_seconds())) is True
         assert cache.get(FIRST_KEY) == SECOND_VALUE
 
-    # Clean up after test as well for good measure
-    cache.delete(FIRST_KEY)
-
 
 @pytest.mark.parametrize(
     "input_,codec,expected_result",
     [
         ({"foo": "bar"}, JsonKeyValueCodec(), {"foo": "bar"}),
         (("foo", "bar"), JsonKeyValueCodec(), ["foo", "bar"]),
-        (complex(1, 1), JsonKeyValueCodec(), KeyValueCreateFailedError()),
+        (complex(1, 1), JsonKeyValueCodec(), KeyValueCodecEncodeException()),
         ({"foo": "bar"}, PickleKeyValueCodec(), {"foo": "bar"}),
         (("foo", "bar"), PickleKeyValueCodec(), ("foo", "bar")),
         (complex(1, 1), PickleKeyValueCodec(), complex(1, 1)),
@@ -137,10 +122,6 @@ def test_codec(
         default_timeout=600,
         codec=codec,
     )
-
-    # Clean up any existing keys first to ensure idempotency
-    cache.delete(FIRST_KEY)
-
     cm = (
         pytest.raises(type(expected_result))
         if isinstance(expected_result, Exception)
@@ -149,6 +130,3 @@ def test_codec(
     with cm:
         cache.set(FIRST_KEY, input_)
         assert cache.get(FIRST_KEY) == expected_result
-
-    # Clean up after test as well for good measure
-    cache.delete(FIRST_KEY)

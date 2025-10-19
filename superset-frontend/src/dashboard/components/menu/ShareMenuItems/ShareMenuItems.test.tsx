@@ -17,17 +17,12 @@
  * under the License.
  */
 
-import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-} from 'spec/helpers/testing-library';
+import { Menu } from 'src/components/Menu';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import * as copyTextToClipboard from 'src/utils/copy';
 import fetchMock from 'fetch-mock';
-import { ComponentProps } from 'react';
-import { useShareMenuItems, ShareMenuItemProps } from '.';
+import ShareMenuItems from '.';
 
 const spy = jest.spyOn(copyTextToClipboard, 'default');
 
@@ -42,7 +37,6 @@ const createProps = () => ({
   emailBody: 'Check out this dashboard: ',
   dashboardId: DASHBOARD_ID,
   title: 'Test Dashboard',
-  submenuKey: 'share',
 });
 
 const { location } = window;
@@ -70,23 +64,17 @@ afterAll((): void => {
   window.location = location;
 });
 
-const MenuWrapper = (
-  props: ComponentProps<typeof Menu> & { shareProps: ShareMenuItemProps },
-) => {
-  const shareMenuItems = useShareMenuItems(props.shareProps);
-  const menuItems: MenuItem[] = [shareMenuItems];
-  return <Menu {...props} items={menuItems} />;
-};
-
 test('Should render menu items', () => {
+  const props = createProps();
   render(
-    <MenuWrapper
+    <Menu
       onClick={jest.fn()}
       selectable={false}
       data-test="main-menu"
       forceSubMenuRender
-      shareProps={createProps()}
-    />,
+    >
+      <ShareMenuItems {...props} />
+    </Menu>,
     { useRedux: true },
   );
   expect(screen.getByText('Copy dashboard URL')).toBeInTheDocument();
@@ -97,13 +85,14 @@ test('Click on "Copy dashboard URL" and succeed', async () => {
   spy.mockResolvedValue(undefined);
   const props = createProps();
   render(
-    <MenuWrapper
+    <Menu
       onClick={jest.fn()}
       selectable={false}
       data-test="main-menu"
       forceSubMenuRender
-      shareProps={props}
-    />,
+    >
+      <ShareMenuItems {...props} />
+    </Menu>,
     { useRedux: true },
   );
 
@@ -129,13 +118,14 @@ test('Click on "Copy dashboard URL" and fail', async () => {
   spy.mockRejectedValue(undefined);
   const props = createProps();
   render(
-    <MenuWrapper
+    <Menu
       onClick={jest.fn()}
       selectable={false}
       data-test="main-menu"
       forceSubMenuRender
-      shareProps={props}
-    />,
+    >
+      <ShareMenuItems {...props} />
+    </Menu>,
     { useRedux: true },
   );
 
@@ -162,13 +152,14 @@ test('Click on "Copy dashboard URL" and fail', async () => {
 test('Click on "Share dashboard by email" and succeed', async () => {
   const props = createProps();
   render(
-    <MenuWrapper
+    <Menu
       onClick={jest.fn()}
       selectable={false}
       data-test="main-menu"
       forceSubMenuRender
-      shareProps={props}
-    />,
+    >
+      <ShareMenuItems {...props} />
+    </Menu>,
     { useRedux: true },
   );
 
@@ -195,13 +186,14 @@ test('Click on "Share dashboard by email" and fail', async () => {
   );
   const props = createProps();
   render(
-    <MenuWrapper
+    <Menu
       onClick={jest.fn()}
       selectable={false}
       data-test="main-menu"
       forceSubMenuRender
-      shareProps={props}
-    />,
+    >
+      <ShareMenuItems {...props} />
+    </Menu>,
     { useRedux: true },
   );
 

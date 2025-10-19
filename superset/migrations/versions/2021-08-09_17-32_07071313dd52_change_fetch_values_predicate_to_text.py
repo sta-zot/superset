@@ -35,8 +35,6 @@ from sqlalchemy import func  # noqa: E402
 from superset import db  # noqa: E402
 from superset.connectors.sqla.models import SqlaTable  # noqa: E402
 
-logger = logging.getLogger("alembic.env")
-
 
 def upgrade():
     with op.batch_alter_table("tables") as batch_op:
@@ -64,12 +62,12 @@ def remove_value_if_too_long():
         for row in rows:
             row.fetch_values_predicate = None
 
-        logger.info("%d values deleted", len(rows))
+        logging.info("%d values deleted", len(rows))
 
         session.commit()
         session.close()
     except Exception as ex:
-        logger.warning(ex)
+        logging.warning(ex)
 
 
 def downgrade():

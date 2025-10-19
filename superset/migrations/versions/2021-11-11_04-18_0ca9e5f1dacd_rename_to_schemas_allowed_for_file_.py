@@ -37,8 +37,6 @@ from superset.utils import json  # noqa: E402
 
 Base = declarative_base()
 
-logger = logging.getLogger("alembic.env")
-
 
 class Database(Base):
     __tablename__ = "dbs"
@@ -54,7 +52,7 @@ def upgrade():
         try:
             extra = json.loads(database.extra)
         except json.JSONDecodeError as ex:
-            logger.warning(str(ex))
+            logging.warning(str(ex))
             continue
 
         if "schemas_allowed_for_csv_upload" in extra:
@@ -76,7 +74,7 @@ def downgrade():
         try:
             extra = json.loads(database.extra)
         except json.JSONDecodeError as ex:
-            logger.warning(str(ex))
+            logging.warning(str(ex))
             continue
 
         if "schemas_allowed_for_file_upload" in extra:

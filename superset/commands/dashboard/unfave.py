@@ -17,6 +17,8 @@
 import logging
 from functools import partial
 
+from requests_cache import Optional
+
 from superset.commands.base import BaseCommand
 from superset.commands.dashboard.exceptions import (
     DashboardUnfaveError,
@@ -31,13 +33,12 @@ logger = logging.getLogger(__name__)
 class DelFavoriteDashboardCommand(BaseCommand):
     def __init__(self, dashboard_id: int) -> None:
         self._dashboard_id = dashboard_id
-        self._dashboard: Dashboard | None = None
+        self._dashboard: Optional[Dashboard] = None
 
     @transaction(on_error=partial(on_error, reraise=DashboardUnfaveError))
     def run(self) -> None:
         self.validate()
-        if self._dashboard:
-            return DashboardDAO.remove_favorite(self._dashboard)
+        return DashboardDAO.remove_favorite(self._dashboard)
 
     def validate(self) -> None:
         # Raises DashboardNotFoundError or DashboardAccessDeniedError

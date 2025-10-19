@@ -209,18 +209,12 @@ export default function EchartsTimeseries({
           }),
         );
         groupBy.forEach((dimension, i) => {
-          const dimensionValues = labelMap[seriesName] ?? [];
-
-          // Skip the metric values at the beginning and get the actual dimension value
-          // If we have multiple metrics, they come first, then the dimension values
-          const metricsCount = dimensionValues.length - groupBy.length;
-          const val = dimensionValues[metricsCount + i];
-
+          const val = labelMap[seriesName][i];
           drillByFilters.push({
             col: dimension,
             op: '==',
             val,
-            formattedVal: formatSeriesName(val, {
+            formattedVal: formatSeriesName(values[i], {
               timeFormatter: getTimeFormatter(formData.dateFormat),
               numberFormatter: getNumberFormatter(formData.numberFormat),
               coltype: coltypeMapping?.[getColumnLabel(dimension)],
@@ -282,7 +276,6 @@ export default function EchartsTimeseries({
         eventHandlers={eventHandlers}
         zrEventHandlers={zrEventHandlers}
         selectedValues={selectedValues}
-        vizType={formData.vizType}
       />
     </>
   );

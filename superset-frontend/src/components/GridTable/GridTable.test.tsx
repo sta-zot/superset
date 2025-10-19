@@ -17,8 +17,12 @@
  * under the License.
  */
 import { render } from 'spec/helpers/testing-library';
-import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
-import { GridTable } from '.';
+import GridTable from '.';
+
+jest.mock('src/components/ErrorBoundary', () => ({
+  __esModule: true,
+  default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
 
 const mockedProps = {
   queryId: 'abc',
@@ -35,10 +39,6 @@ const mockedProps = {
   ],
   height: 500,
 };
-
-beforeAll(() => {
-  setupAGGridModules();
-});
 
 test('renders a grid with 3 Table rows', () => {
   const { queryByText } = render(<GridTable {...mockedProps} />);

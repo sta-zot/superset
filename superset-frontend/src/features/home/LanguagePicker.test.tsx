@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import { Menu } from '@superset-ui/core/components/Menu';
-import { useLanguageMenuItems } from './LanguagePicker';
+import { render, screen } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
+import { MainNav as Menu } from 'src/components/Menu';
+import LanguagePicker from './LanguagePicker';
 
 const mockedProps = {
   locale: 'en',
@@ -36,33 +37,31 @@ const mockedProps = {
   },
 };
 
-const TestLanguagePicker = ({ locale, languages }: typeof mockedProps) => {
-  const languageMenuItem = useLanguageMenuItems({ locale, languages });
-
-  return (
-    <Menu aria-label="Languages" items={[languageMenuItem]} mode="horizontal" />
-  );
-};
-
 test('should render', async () => {
-  const { container } = render(<TestLanguagePicker {...mockedProps} />, {
-    useRouter: true,
-  });
+  const { container } = render(
+    <Menu>
+      <LanguagePicker {...mockedProps} />
+    </Menu>,
+  );
   expect(await screen.findByRole('menu')).toBeInTheDocument();
   expect(container).toBeInTheDocument();
 });
 
-test('should render the language picker', () => {
-  render(<TestLanguagePicker {...mockedProps} />, {
-    useRouter: true,
-  });
-  expect(screen.getByRole('menu', { name: 'Languages' })).toBeInTheDocument();
+test('should render the language picker', async () => {
+  render(
+    <Menu>
+      <LanguagePicker {...mockedProps} />
+    </Menu>,
+  );
+  expect(await screen.findByLabelText('Languages')).toBeInTheDocument();
 });
 
 test('should render the items', async () => {
-  render(<TestLanguagePicker {...mockedProps} />, {
-    useRouter: true,
-  });
+  render(
+    <Menu>
+      <LanguagePicker {...mockedProps} />
+    </Menu>,
+  );
   userEvent.hover(screen.getByRole('menuitem'));
   expect(await screen.findByText('English')).toBeInTheDocument();
   expect(await screen.findByText('Italian')).toBeInTheDocument();

@@ -120,7 +120,6 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     truncateXAxis,
     truncateYAxis,
     xAxisLabelRotation,
-    xAxisLabelInterval,
     yAxisLabelRotation,
     tooltipSizeFormat,
     opacity,
@@ -128,7 +127,6 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     legendOrientation,
     legendMargin,
     legendType,
-    legendSort,
     sliceId,
   }: EchartsBubbleFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
@@ -199,7 +197,6 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
         },
       },
       nameRotate: xAxisLabelRotation,
-      interval: xAxisLabelInterval,
       scale: true,
       name: bubbleXAxisTitle,
       nameLocation: 'middle',
@@ -231,10 +228,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     },
     legend: {
       ...getLegendProps(legendType, legendOrientation, showLegend, theme),
-      data: Array.from(legends).sort((a: string, b: string) => {
-        if (!legendSort) return 0;
-        return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
-      }),
+      data: Array.from(legends),
     },
     tooltip: {
       show: !inContextMenu,

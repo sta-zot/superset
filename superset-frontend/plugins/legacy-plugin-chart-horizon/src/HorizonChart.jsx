@@ -65,7 +65,7 @@ const StyledDiv = styled.div`
     }
 
     .superset-legacy-chart-horizon .horizon-row {
-      border-bottom: solid 1px ${theme.colorBorderSecondary};
+      border-bottom: solid 1px ${theme.colors.grayscale.light2};
       border-top: 0;
       padding: 0;
       margin: 0;
@@ -73,8 +73,8 @@ const StyledDiv = styled.div`
 
     .superset-legacy-chart-horizon .horizon-row span.title {
       position: absolute;
-      color: ${theme.colorText};
-      font-size: ${theme.fontSizeSM}px;
+      color: ${theme.colors.grayscale.dark1};
+      font-size: ${theme.typography.sizes.s}px;
       margin: 0;
     }
   `}

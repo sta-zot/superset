@@ -16,38 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useState, useEffect } from 'react';
+import { useState } from 'react';
 import { styled, SupersetTheme, t, useTheme } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { ColorSchemeEnum } from '@superset-ui/plugin-chart-table';
 import {
   Comparator,
   MultipleValueComparators,
 } from '@superset-ui/chart-controls';
-import {
-  Select,
-  Button,
-  Form,
-  FormItem,
-  InputNumber,
-  Input,
-  Col,
-  Row,
-  type FormProps,
-} from '@superset-ui/core/components';
+import { Form, FormItem, FormProps } from 'src/components/Form';
+import Select from 'src/components/Select/Select';
+import { Col, Row } from 'src/components';
+import { InputNumber } from 'src/components/Input';
+import Button from 'src/components/Button';
 import { ConditionalFormattingConfig } from './types';
 
-// TODO: tangled redefinition that aligns with @superset-ui/plugin-chart-table
-// used to be imported but main app shouldn't depend on plugins...
-export enum ColorSchemeEnum {
-  'Green' = 'Green',
-  'Red' = 'Red',
-}
-
 const FullWidthInputNumber = styled(InputNumber)`
-  width: 100%;
-`;
-
-const FullWidthInput = styled(Input)`
   width: 100%;
 `;
 
@@ -57,9 +40,12 @@ const JustifyEnd = styled.div`
 `;
 
 const colorSchemeOptions = (theme: SupersetTheme) => [
-  { value: theme.colorSuccessBg, label: t('success') },
-  { value: theme.colorWarningBg, label: t('alert') },
-  { value: theme.colorErrorBg, label: t('error') },
+  { value: theme.colors.success.light1, label: t('success') },
+  { value: theme.colors.warning.light1, label: t('alert') },
+  { value: theme.colors.error.light1, label: t('error') },
+  { value: theme.colors.success.dark1, label: t('success dark') },
+  { value: theme.colors.warning.dark1, label: t('alert dark') },
+  { value: theme.colors.error.dark1, label: t('error dark') },
 ];
 
 const operatorOptions = [
@@ -74,15 +60,6 @@ const operatorOptions = [
   { value: Comparator.BetweenOrEqual, label: '≤ x ≤' },
   { value: Comparator.BetweenOrLeftEqual, label: '≤ x <' },
   { value: Comparator.BetweenOrRightEqual, label: '< x ≤' },
-];
-
-const stringOperatorOptions = [
-  { value: Comparator.None, label: t('None') },
-  { value: Comparator.Equal, label: '=' },
-  { value: Comparator.BeginsWith, label: t('begins with') },
-  { value: Comparator.EndsWith, label: t('ends with') },
-  { value: Comparator.Containing, label: t('containing') },
-  { value: Comparator.NotContaining, label: t('not containing') },
 ];
 
 const targetValueValidator =
@@ -147,41 +124,24 @@ const shouldFormItemUpdate = (
   isOperatorMultiValue(prevValues.operator) !==
     isOperatorMultiValue(currentValues.operator);
 
-const renderOperator = ({
-  showOnlyNone,
-  columnType,
-}: { showOnlyNone?: boolean; columnType?: GenericDataType } = {}) => {
-  const options =
-    columnType === GenericDataType.String
-      ? stringOperatorOptions
-      : operatorOptions;
+const renderOperator = ({ showOnlyNone }: { showOnlyNone?: boolean } = {}) => (
+  <FormItem
+    name="operator"
+    label={t('Operator')}
+    rules={rulesRequired}
+    initialValue={operatorOptions[0].value}
+  >
+    <Select
+      ariaLabel={t('Operator')}
+      options={showOnlyNone ? [operatorOptions[0]] : operatorOptions}
+    />
+  </FormItem>
+);
 
-  return (
-    <FormItem
-      name="operator"
-      label={t('Operator')}
-      rules={rulesRequired}
-      initialValue={options[0].value}
-    >
-      <Select
-        ariaLabel={t('Operator')}
-        options={showOnlyNone ? [options[0]] : options}
-      />
-    </FormItem>
-  );
-};
-
-const renderOperatorFields = (
-  { getFieldValue }: GetFieldValue,
-  columnType?: GenericDataType,
-) => {
-  const columnTypeString = columnType === GenericDataType.String;
-  const operatorColSpan = columnTypeString ? 8 : 6;
-  const valueColSpan = columnTypeString ? 16 : 18;
-
-  return isOperatorNone(getFieldValue('operator')) ? (
+const renderOperatorFields = ({ getFieldValue }: GetFieldValue) =>
+  isOperatorNone(getFieldValue('operator')) ? (
     <Row gutter={12}>
-      <Col span={operatorColSpan}>{renderOperator({ columnType })}</Col>
+      <Col span={6}>{renderOperator()}</Col>
     </Row>
   ) : isOperatorMultiValue(getFieldValue('operator')) ? (
     <Row gutter={12}>
@@ -197,7 +157,7 @@ const renderOperatorFields = (
           <FullWidthInputNumber />
         </FormItem>
       </Col>
-      <Col span={6}>{renderOperator({ columnType })}</Col>
+      <Col span={6}>{renderOperator()}</Col>
       <Col span={9}>
         <FormItem
           name="targetValueRight"
@@ -213,19 +173,18 @@ const renderOperatorFields = (
     </Row>
   ) : (
     <Row gutter={12}>
-      <Col span={operatorColSpan}>{renderOperator({ columnType })}</Col>
-      <Col span={valueColSpan}>
+      <Col span={6}>{renderOperator()}</Col>
+      <Col span={18}>
         <FormItem
           name="targetValue"
           label={t('Target value')}
           rules={rulesRequired}
         >
-          {columnTypeString ? <FullWidthInput /> : <FullWidthInputNumber />}
+          <FullWidthInputNumber />
         </FormItem>
       </Col>
     </Row>
   );
-};
 
 export const FormattingPopoverContent = ({
   config,
@@ -235,11 +194,10 @@ export const FormattingPopoverContent = ({
 }: {
   config?: ConditionalFormattingConfig;
   onChange: (config: ConditionalFormattingConfig) => void;
-  columns: { label: string; value: string; dataType: GenericDataType }[];
+  columns: { label: string; value: string }[];
   extraColorChoices?: { label: string; value: string }[];
 }) => {
   const theme = useTheme();
-  const [form] = Form.useForm();
   const colorScheme = colorSchemeOptions(theme);
   const [showOperatorFields, setShowOperatorFields] = useState(
     config === undefined ||
@@ -252,45 +210,8 @@ export const FormattingPopoverContent = ({
     );
   };
 
-  const [column, setColumn] = useState<string>(
-    config?.column || columns[0]?.value,
-  );
-  const [previousColumnType, setPreviousColumnType] = useState<
-    GenericDataType | undefined
-  >();
-
-  const columnType = useMemo(
-    () => columns.find(item => item.value === column)?.dataType,
-    [columns, column],
-  );
-
-  const handleColumnChange = (value: string) => {
-    const newColumnType = columns.find(item => item.value === value)?.dataType;
-    if (newColumnType !== previousColumnType) {
-      const defaultOperator =
-        newColumnType === GenericDataType.String
-          ? stringOperatorOptions[0].value
-          : operatorOptions[0].value;
-
-      form.setFieldsValue({
-        operator: defaultOperator,
-      });
-    }
-    setColumn(value);
-    setPreviousColumnType(newColumnType);
-  };
-
-  useEffect(() => {
-    if (column && !previousColumnType) {
-      setPreviousColumnType(
-        columns.find(item => item.value === column)?.dataType,
-      );
-    }
-  }, [column, columns, previousColumnType]);
-
   return (
     <Form
-      form={form}
       onFinish={onChange}
       initialValues={config}
       requiredMark="optional"
@@ -304,13 +225,7 @@ export const FormattingPopoverContent = ({
             rules={rulesRequired}
             initialValue={columns[0]?.value}
           >
-            <Select
-              ariaLabel={t('Select column')}
-              options={columns}
-              onChange={value => {
-                handleColumnChange(value as string);
-              }}
-            />
+            <Select ariaLabel={t('Select column')} options={columns} />
           </FormItem>
         </Col>
         <Col span={12}>
@@ -330,12 +245,10 @@ export const FormattingPopoverContent = ({
       </Row>
       <FormItem noStyle shouldUpdate={shouldFormItemUpdate}>
         {showOperatorFields ? (
-          (props: GetFieldValue) => renderOperatorFields(props, columnType)
+          renderOperatorFields
         ) : (
           <Row gutter={12}>
-            <Col span={6}>
-              {renderOperator({ showOnlyNone: true, columnType })}
-            </Col>
+            <Col span={6}>{renderOperator({ showOnlyNone: true })}</Col>
           </Row>
         )}
       </FormItem>

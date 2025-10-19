@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { type ReactChild } from 'react';
 import {
   render,
   screen,
@@ -28,7 +27,6 @@ import configureStore from 'redux-mock-store';
 import { Store } from 'redux';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
-import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import ResultSet from 'src/SqlLab/components/ResultSet';
 import {
   cachedQuery,
@@ -42,15 +40,9 @@ import {
   failedQueryWithFrontendTimeoutErrors,
 } from 'src/SqlLab/fixtures';
 
-jest.mock('src/components/ErrorMessage', () => ({
-  ErrorMessageWithStackTrace: () => <div data-test="error-message">Error</div>,
-}));
-
 jest.mock(
-  'react-virtualized-auto-sizer',
-  () =>
-    ({ children }: { children: (params: { height: number }) => ReactChild }) =>
-      children({ height: 500 }),
+  'src/components/ErrorMessage/ErrorMessageWithStackTrace',
+  () => () => <div data-test="error-message">Error</div>,
 );
 
 const mockedProps = {
@@ -150,19 +142,7 @@ const setup = (props?: any, store?: Store) =>
     ...(store && { store }),
   });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ResultSet', () => {
-  beforeAll(() => {
-    setupAGGridModules();
-  });
-
-  // Add cleanup after each test
-  afterEach(async () => {
-    fetchMock.resetHistory();
-    // Wait for any pending effects to complete
-    await new Promise(resolve => setTimeout(resolve, 0));
-  });
-
   test('renders a Table', async () => {
     const { getByTestId } = setup(
       mockedProps,
@@ -177,10 +157,8 @@ describe('ResultSet', () => {
         },
       }),
     );
-    await waitFor(() => {
-      const table = getByTestId('table-container');
-      expect(table).toBeInTheDocument();
-    });
+    const table = getByTestId('table-container');
+    expect(table).toBeInTheDocument();
   });
 
   test('should render success query', async () => {
@@ -376,7 +354,7 @@ describe('ResultSet', () => {
       );
     });
     const { getByRole } = setup(mockedProps, mockStore(initialState));
-    expect(getByRole('grid')).toBeInTheDocument();
+    expect(getByRole('treegrid')).toBeInTheDocument();
   });
 
   test('renders if there is a limit in query.results but not queryLimit', async () => {
@@ -394,7 +372,7 @@ describe('ResultSet', () => {
         },
       }),
     );
-    expect(getByRole('grid')).toBeInTheDocument();
+    expect(getByRole('treegrid')).toBeInTheDocument();
   });
 
   test('Async queries - renders "Fetch data preview" button when data preview has no results', () => {
@@ -422,7 +400,7 @@ describe('ResultSet', () => {
         name: /fetch data preview/i,
       }),
     ).toBeVisible();
-    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
+    expect(screen.queryByRole('treegrid')).not.toBeInTheDocument();
   });
 
   test('Async queries - renders "Refetch results" button when a query has no results', () => {
@@ -451,7 +429,7 @@ describe('ResultSet', () => {
         name: /refetch results/i,
       }),
     ).toBeVisible();
-    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
+    expect(screen.queryByRole('treegrid')).not.toBeInTheDocument();
   });
 
   test('Async queries - renders on the first call', () => {
@@ -471,7 +449,7 @@ describe('ResultSet', () => {
         },
       }),
     );
-    expect(screen.getByRole('grid')).toBeVisible();
+    expect(screen.getByRole('treegrid')).toBeVisible();
     expect(
       screen.queryByRole('button', {
         name: /fetch data preview/i,
@@ -530,21 +508,12 @@ describe('ResultSet', () => {
         },
       }),
     );
-
-    await waitFor(() => {
-      const downloadButton = getByTestId('export-csv-button');
-      expect(downloadButton).toBeInTheDocument();
-    });
-
     const downloadButton = getByTestId('export-csv-button');
-    await waitFor(() => fireEvent.click(downloadButton));
-
+    fireEvent.click(downloadButton);
     const warningModal = await findByRole('dialog');
-    await waitFor(() => {
-      expect(
-        within(warningModal).getByText(`Download is on the way`),
-      ).toBeInTheDocument();
-    });
+    expect(
+      within(warningModal).getByText(`Download is on the way`),
+    ).toBeInTheDocument();
   });
 
   test('should not allow download as CSV when user does not have permission to export data', async () => {

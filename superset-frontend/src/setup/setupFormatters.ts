@@ -83,15 +83,7 @@ export default function setupFormatters(
       createDurationFormatter({ colonNotation: true }),
     )
     .registerValue('MEMORY_DECIMAL', createMemoryFormatter({ binary: false }))
-    .registerValue('MEMORY_BINARY', createMemoryFormatter({ binary: true }))
-    .registerValue(
-      'MEMORY_TRANSFER_RATE_DECIMAL',
-      createMemoryFormatter({ binary: false, transfer: true }),
-    )
-    .registerValue(
-      'MEMORY_TRANSFER_RATE_BINARY',
-      createMemoryFormatter({ binary: true, transfer: true }),
-    );
+    .registerValue('MEMORY_BINARY', createMemoryFormatter({ binary: true }));
 
   const timeFormatterRegistry = getTimeFormatterRegistry();
 

@@ -18,8 +18,8 @@
  */
 
 import { t } from '@superset-ui/core';
-import type { ErrorMessageComponentProps } from './types';
-import { ErrorAlert } from './ErrorAlert';
+import { ErrorMessageComponentProps } from './types';
+import ErrorAlert from './ErrorAlert';
 
 interface SupersetParseErrorExtra {
   sql: string;
@@ -31,8 +31,9 @@ interface SupersetParseErrorExtra {
 /*
  * Component for showing syntax errors in SQL Lab.
  */
-export function InvalidSQLErrorMessage({
+function InvalidSQLErrorMessage({
   error,
+  source,
   subtitle,
 }: ErrorMessageComponentProps<SupersetParseErrorExtra>) {
   const { extra, level, message } = error;
@@ -61,3 +62,5 @@ export function InvalidSQLErrorMessage({
     />
   );
 }
+
+export default InvalidSQLErrorMessage;

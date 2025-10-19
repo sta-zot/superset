@@ -19,26 +19,25 @@ import textwrap
 from typing import Union
 
 import pandas as pd
-from flask import current_app
 from sqlalchemy import DateTime, inspect, String
 from sqlalchemy.sql import column
 
-from superset import db, security_manager
+from superset import app, db, security_manager
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.sql.parse import Table
+from superset.sql_parse import Table
 from superset.utils import json
 from superset.utils.core import DatasourceType
 
-from ..utils.database import get_example_database  # noqa: TID252
+from ..utils.database import get_example_database
 from .helpers import (
+    get_example_url,
     get_slice_json,
     get_table_connector_registry,
     merge_slice,
     misc_dash_slices,
-    read_example_data,
     update_slice_ids,
 )
 
@@ -58,8 +57,8 @@ def gen_filter(
 
 
 def load_data(tbl_name: str, database: Database, sample: bool = False) -> None:
-    pdf = read_example_data("examples://birth_names2.json.gz", compression="gzip")
-
+    url = get_example_url("birth_names2.json.gz")
+    pdf = pd.read_json(url, compression="gzip")
     # TODO(bkyryliuk): move load examples data into the pytest fixture
     if database.backend == "presto":
         pdf.ds = pd.to_datetime(pdf.ds, unit="ms")
@@ -108,7 +107,7 @@ def load_birth_names(
     table = get_table_connector_registry()
     obj = db.session.query(table).filter_by(table_name=tbl_name, schema=schema).first()
     if not obj:
-        logger.debug("Creating table [%s] reference", tbl_name)
+        logger.debug(f"Creating table [{tbl_name}] reference")
         obj = table(table_name=tbl_name, schema=schema)
         db.session.add(obj)
 
@@ -138,14 +137,13 @@ def _add_table_metrics(datasource: SqlaTable) -> None:
         columns.append(
             TableColumn(
                 column_name="num_california",
-                expression="CASE WHEN %s = 'CA' THEN %s ELSE 0 END"
-                % (col_state, col_num),
+                expression=f"CASE WHEN {col_state} = 'CA' THEN {col_num} ELSE 0 END",
             )
         )
 
     if not any(col.metric_name == "sum__num" for col in metrics):
         col = str(column("num").compile(db.engine))
-        metrics.append(SqlMetric(metric_name="sum__num", expression="SUM(%s)" % col))
+        metrics.append(SqlMetric(metric_name="sum__num", expression=f"SUM({col})"))
 
     for col in columns:
         if col.column_name == "ds":  # type: ignore
@@ -175,7 +173,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
         "limit": "25",
         "granularity_sqla": "ds",
         "groupby": [],
-        "row_limit": current_app.config["ROW_LIMIT"],
+        "row_limit": app.config["ROW_LIMIT"],
         "time_range": "100 years ago : now",
         "viz_type": "table",
         "markup_type": "markdown",
@@ -586,6 +584,7 @@ def create_dashboard(slices: list[Slice]) -> Dashboard:
         }
     }"""
     )
+    # pylint: disable=echarts_timeseries_line-too-long
     pos = json.loads(
         textwrap.dedent(
             """\
@@ -860,10 +859,11 @@ def create_dashboard(slices: list[Slice]) -> Dashboard:
         """  # noqa: E501
         )
     )
+    # pylint: enable=echarts_timeseries_line-too-long
     # dashboard v2 doesn't allow add markup slice
     dash.slices = [slc for slc in slices if slc.viz_type != "markup"]
     update_slice_ids(pos)
     dash.dashboard_title = "USA Births Names"
-    dash.position_json = json.dumps(pos, indent=4)  # noqa: TID251
+    dash.position_json = json.dumps(pos, indent=4)
     dash.slug = "births"
     return dash

@@ -17,6 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { chart } from 'src/components/Chart/chartReducer';
 import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
 import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
@@ -274,10 +275,13 @@ export const hydrateDashboard =
           superset_can_csv: findPermission('can_csv', 'Superset', roles),
           common: {
             // legacy, please use state.common instead
+            flash_messages: common?.flash_messages,
             conf: common?.conf,
           },
           filterBarOrientation:
-            metadata.filter_bar_orientation || FilterBarOrientation.Vertical,
+            (isFeatureEnabled(FeatureFlag.HorizontalFilterBar) &&
+              metadata.filter_bar_orientation) ||
+            FilterBarOrientation.Vertical,
           crossFiltersEnabled,
         },
         dataMask,

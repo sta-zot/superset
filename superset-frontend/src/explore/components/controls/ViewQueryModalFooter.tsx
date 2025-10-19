@@ -19,7 +19,7 @@
 import { FC } from 'react';
 import { isObject } from 'lodash';
 import { t, SupersetClient } from '@superset-ui/core';
-import { Button } from '@superset-ui/core/components';
+import Button from 'src/components/Button';
 import { useHistory } from 'react-router-dom';
 
 interface SimpleDataSource {
@@ -76,7 +76,6 @@ const ViewQueryModalFooter: FC<ViewQueryModalFooterProps> = (props: {
   return (
     <div>
       <Button
-        buttonStyle="secondary"
         onClick={() => {
           props?.closeModal?.();
           props?.changeDatasource?.();
@@ -84,13 +83,11 @@ const ViewQueryModalFooter: FC<ViewQueryModalFooterProps> = (props: {
       >
         {SAVE_AS_DATASET}
       </Button>
-      <Button
-        buttonStyle="secondary"
-        onClick={({ metaKey }) => openSQL(Boolean(metaKey))}
-      >
+      <Button onClick={({ metaKey }) => openSQL(Boolean(metaKey))}>
         {OPEN_IN_SQL_LAB}
       </Button>
       <Button
+        buttonStyle="primary"
         onClick={() => {
           props?.closeModal?.();
         }}

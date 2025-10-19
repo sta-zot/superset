@@ -16,15 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, ExtraFormData, t, tn } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
-import { useEffect, useState } from 'react';
 import {
-  FormItem,
-  type FormItemProps,
-  Select,
-} from '@superset-ui/core/components';
-import { FilterPluginStyle, StatusMessage } from '../common';
+  ensureIsArray,
+  ExtraFormData,
+  GenericDataType,
+  t,
+  tn,
+} from '@superset-ui/core';
+import { useEffect, useState } from 'react';
+import { Select } from 'src/components';
+import { FormItemProps } from 'antd/lib/form';
+import { FilterPluginStyle, StyledFormItem, StatusMessage } from '../common';
 import { PluginFilterTimeColumnProps } from './types';
 
 export default function PluginFilterTimeColumn(
@@ -104,7 +106,10 @@ export default function PluginFilterTimeColumn(
 
   return (
     <FilterPluginStyle height={height} width={width}>
-      <FormItem validateStatus={filterState.validateStatus} {...formItemData}>
+      <StyledFormItem
+        validateStatus={filterState.validateStatus}
+        {...formItemData}
+      >
         <Select
           name={formData.nativeFilterId}
           allowClear
@@ -118,9 +123,9 @@ export default function PluginFilterTimeColumn(
           onMouseLeave={unsetHoveredFilter}
           ref={inputRef}
           options={options}
-          onOpenChange={setFilterActive}
+          onDropdownVisibleChange={setFilterActive}
         />
-      </FormItem>
+      </StyledFormItem>
     </FilterPluginStyle>
   );
 }

@@ -41,11 +41,6 @@ const renderWrapper = (overrideProps?: Record<string, any>) =>
         dashboardInfo: {
           dash_edit_perm: true,
         },
-        dashboardLayout: {
-          present: {},
-          past: [],
-          future: [],
-        },
       },
     }),
   );

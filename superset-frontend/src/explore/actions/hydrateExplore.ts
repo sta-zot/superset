@@ -27,7 +27,6 @@ import { getChartKey } from 'src/explore/exploreUtils';
 import { getControlsState } from 'src/explore/store';
 import { Dispatch } from 'redux';
 import {
-  Currency,
   ensureIsArray,
   getCategoricalSchemeRegistry,
   getColumnLabel,
@@ -98,14 +97,6 @@ export const hydrateExplore =
     }
 
     const initialDatasource = dataset;
-    initialDatasource.currency_formats = Object.fromEntries(
-      (initialDatasource.metrics ?? [])
-        .filter(metric => !!metric.currency)
-        .map((metric): [string, Currency] => [
-          metric.metric_name,
-          metric.currency!,
-        ]),
-    );
 
     const initialExploreState = {
       form_data: initialFormData,

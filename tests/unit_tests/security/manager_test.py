@@ -17,7 +17,7 @@
 
 # pylint: disable=invalid-name, unused-argument, redefined-outer-name
 
-import json  # noqa: TID251
+import json
 
 import pytest
 from flask_appbuilder.security.sqla.models import Role, User
@@ -32,7 +32,7 @@ from superset.security.manager import (
     query_context_modified,
     SupersetSecurityManager,
 )
-from superset.sql.parse import Table
+from superset.sql_parse import Table
 from superset.superset_typing import AdhocColumn, AdhocMetric
 from superset.utils.core import DatasourceName, override_user
 
@@ -450,7 +450,7 @@ def test_raise_for_access_chart_for_datasource_permission(
     when the user does not have access to the chart datasource
     """
     sm = SupersetSecurityManager(appbuilder)
-    session = sm.session
+    session = sm.get_session
 
     engine = session.get_bind()
     Slice.metadata.create_all(engine)  # pylint: disable=no-member
@@ -510,7 +510,7 @@ def test_raise_for_access_chart_on_admin(
     from superset.utils.core import override_user
 
     sm = SupersetSecurityManager(appbuilder)
-    session = sm.session
+    session = sm.get_session
 
     engine = session.get_bind()
     Slice.metadata.create_all(engine)  # pylint: disable=no-member
@@ -547,35 +547,18 @@ def test_raise_for_access_chart_owner(
     when the user does not have access to the chart datasource
     """
     sm = SupersetSecurityManager(appbuilder)
-    session = sm.session
+    session = sm.get_session
 
     engine = session.get_bind()
     Slice.metadata.create_all(engine)  # pylint: disable=no-member
 
-    # Check if Alpha role already exists
-    alpha_role = session.query(Role).filter_by(name="Alpha").first()
-    if not alpha_role:
-        alpha_role = Role(name="Alpha")
-        session.add(alpha_role)
-        session.commit()
-
-    # Check if user already exists
-    alpha = session.query(User).filter_by(username="test_chart_owner_user").first()
-    if not alpha:
-        alpha = User(
-            first_name="Alice",
-            last_name="Doe",
-            email="adoe@example.org",
-            username="test_chart_owner_user",
-            roles=[alpha_role],
-        )
-        session.add(alpha)
-        session.commit()
-    else:
-        # Ensure the user has the Alpha role
-        if alpha_role not in alpha.roles:
-            alpha.roles.append(alpha_role)
-            session.commit()
+    alpha = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Alpha")],
+    )
 
     slice = Slice(
         id=1,

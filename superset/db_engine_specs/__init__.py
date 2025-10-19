@@ -33,16 +33,15 @@ import logging
 import pkgutil
 from collections import defaultdict
 from importlib import import_module
-from importlib.metadata import entry_points
 from pathlib import Path
 from typing import Any, Optional
 
 import sqlalchemy.dialects
-from flask import current_app as app
+from importlib_metadata import entry_points
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.exc import NoSuchModuleError
 
-from superset import feature_flag_manager
+from superset import app, feature_flag_manager
 from superset.db_engine_specs.base import BaseEngineSpec
 
 logger = logging.getLogger(__name__)
@@ -155,7 +154,7 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noq
         try:
             dialect = ep.load()
         except Exception as ex:  # pylint: disable=broad-except
-            logger.debug("Unable to load SQLAlchemy dialect %s: %s", ep.name, ex)
+            logger.warning("Unable to load SQLAlchemy dialect %s: %s", ep.name, ex)
         else:
             backend = dialect.name
             if isinstance(backend, bytes):

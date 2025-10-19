@@ -83,14 +83,10 @@ export function removeFromArr(
   return { ...state, [arrKey]: newArr };
 }
 
-export function getFromArr(
-  arr: Record<string, any>[],
-  id: string,
-  idKey = 'id',
-) {
+export function getFromArr(arr: Record<string, any>[], id: string) {
   let obj;
   arr.forEach(o => {
-    if (o[idKey] === id) {
+    if (o.id === id) {
       obj = o;
     }
   });

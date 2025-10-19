@@ -41,7 +41,7 @@ export default {
   decorators: [withResizableChartDemo],
 };
 
-export const Radar = ({ width, height }: { width: number; height: number }) => (
+export const Radar = ({ width, height }) => (
   <SuperChart
     chartType={VizType.Radar}
     width={width}

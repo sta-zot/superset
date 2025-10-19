@@ -18,131 +18,116 @@
  */
 import { t, styled } from '@superset-ui/core';
 import { useCallback, useEffect, useRef, useState, ReactNode } from 'react';
+import Alert from 'src/components/Alert';
 import cx from 'classnames';
-import TableCollection from '@superset-ui/core/components/TableCollection';
+import Button from 'src/components/Button';
+import Icons from 'src/components/Icons';
+import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
+import Pagination from 'src/components/Pagination';
+import TableCollection from 'src/components/TableCollection';
 import BulkTagModal from 'src/features/tags/BulkTagModal';
-import {
-  Alert,
-  Button,
-  Checkbox,
-  Icons,
-  EmptyState,
-  Loading,
-  type EmptyStateProps,
-} from '@superset-ui/core/components';
 import CardCollection from './CardCollection';
 import FilterControls from './Filters';
 import { CardSortSelect } from './CardSortSelect';
 import {
-  ListViewFetchDataConfig as FetchDataConfig,
-  ListViewFilters as Filters,
+  FetchDataConfig,
+  Filters,
   SortColumn,
   CardSortSelectOption,
   ViewModeType,
 } from './types';
 import { ListViewError, useListViewState } from './utils';
+import { EmptyState, EmptyStateProps } from '../EmptyState';
 
 const ListViewStyles = styled.div`
-  ${({ theme }) => `
-    text-align: center;
-    background-color: ${theme.colorBgLayout};
+  text-align: center;
 
-    .superset-list-view {
-      text-align: left;
-      border-radius: 4px 0;
-      margin: 0 ${theme.sizeUnit * 4}px;
+  .superset-list-view {
+    text-align: left;
+    border-radius: 4px 0;
+    margin: 0 ${({ theme }) => theme.gridUnit * 4}px;
 
-      .header {
-        display: flex;
-        padding-bottom: ${theme.sizeUnit * 4}px;
-
-        & .controls {
-          display: flex;
-          flex-wrap: wrap;
-          column-gap: ${theme.sizeUnit * 6}px;
-          row-gap: ${theme.sizeUnit * 4}px;
-        }
-      }
-
-      .body.empty table {
-        margin-bottom: 0;
-      }
-
-      .body {
-        overflow-x: auto;
-        overflow-y: hidden;
-      }
-
-      .ant-empty {
-        .ant-empty-image {
-          height: auto;
-        }
-      }
-    }
-
-    .pagination-container {
+    .header {
       display: flex;
-      flex-direction: column;
-      justify-content: center;
-      margin-bottom: ${theme.sizeUnit * 4}px;
+      padding-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+
+      & .controls {
+        display: flex;
+        flex-wrap: wrap;
+        column-gap: ${({ theme }) => theme.gridUnit * 6}px;
+        row-gap: ${({ theme }) => theme.gridUnit * 4}px;
+      }
     }
 
-    .row-count-container {
-      margin-top: ${theme.sizeUnit * 2}px;
-      color: ${theme.colorText};
+    .body.empty table {
+      margin-bottom: 0;
     }
-  `}
-`;
 
-const FullPageLoadingWrapper = styled.div`
-  ${({ theme }) => `
+    .body {
+      overflow-x: auto;
+    }
+
+    .antd5-empty {
+      .antd5-empty-image {
+        height: auto;
+      }
+    }
+  }
+
+  .pagination-container {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     justify-content: center;
-    min-height: 50vh;
-    padding: ${theme.sizeUnit * 16}px;
-  `}
+    margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+  }
+
+  .row-count-container {
+    margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+    color: ${({ theme }) => theme.colors.grayscale.base};
+  }
 `;
 
 const BulkSelectWrapper = styled(Alert)`
   ${({ theme }) => `
     border-radius: 0;
     margin-bottom: 0;
-    color: ${theme.colorText};
-    background-color: ${theme.colorPrimaryBg};
+    color: ${theme.colors.grayscale.dark1};
+    background-color: ${theme.colors.primary.light4};
 
     .selectedCopy {
       display: inline-block;
-      padding: ${theme.sizeUnit * 2}px 0;
+      padding: ${theme.gridUnit * 2}px 0;
     }
 
     .deselect-all, .tag-btn {
-      color: ${theme.colorPrimary};
-      margin-left: ${theme.sizeUnit * 4}px;
+      color: ${theme.colors.primary.base};
+      margin-left: ${theme.gridUnit * 4}px;
     }
 
     .divider {
-      margin: ${`${-theme.sizeUnit * 2}px 0 ${-theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px`};
+      margin: ${`${-theme.gridUnit * 2}px 0 ${-theme.gridUnit * 2}px ${
+        theme.gridUnit * 4
+      }px`};
       width: 1px;
-      height: ${theme.sizeUnit * 8}px;
-      box-shadow: inset -1px 0px 0px ${theme.colorBorder};
+      height: ${theme.gridUnit * 8}px;
+      box-shadow: inset -1px 0px 0px ${theme.colors.grayscale.light2};
       display: inline-flex;
       vertical-align: middle;
       position: relative;
     }
 
     .ant-alert-close-icon {
-      margin-top: ${theme.sizeUnit * 1.5}px;
+      margin-top: ${theme.gridUnit * 1.5}px;
     }
   `}
 `;
 
 const bulkSelectColumnConfig = {
   Cell: ({ row }: any) => (
-    <Checkbox {...row.getToggleRowSelectedProps()} id={row.id} />
+    <IndeterminateCheckbox {...row.getToggleRowSelectedProps()} id={row.id} />
   ),
   Header: ({ getToggleAllRowsSelectedProps }: any) => (
-    <Checkbox
+    <IndeterminateCheckbox
       {...getToggleAllRowsSelectedProps()}
       id="header-toggle-all"
       data-test="header-toggle-all"
@@ -153,41 +138,36 @@ const bulkSelectColumnConfig = {
 };
 
 const ViewModeContainer = styled.div`
-  ${({ theme }) => `
-    padding-right: ${theme.sizeUnit * 4}px;
-    margin-top: ${theme.sizeUnit * 5 + 1}px;
-    white-space: nowrap;
+  padding-right: ${({ theme }) => theme.gridUnit * 4}px;
+  margin-top: ${({ theme }) => theme.gridUnit * 5 + 1}px;
+  white-space: nowrap;
+  display: inline-block;
+
+  .toggle-button {
     display: inline-block;
+    border-radius: ${({ theme }) => theme.gridUnit / 2}px;
+    padding: ${({ theme }) => theme.gridUnit}px;
+    padding-bottom: ${({ theme }) => theme.gridUnit * 0.5}px;
 
-    .toggle-button {
-      display: inline-block;
-      border-radius: ${theme.borderRadius}px;
-      padding: ${theme.sizeUnit}px;
-      padding-bottom: ${theme.sizeUnit * 0.5}px;
-
-      &:first-of-type {
-        margin-right: ${theme.sizeUnit * 2}px;
-      }
+    &:first-of-type {
+      margin-right: ${({ theme }) => theme.gridUnit * 2}px;
     }
+  }
 
-    .active {
-      background-color: ${theme.colorText};
-
-      svg {
-        color: ${theme.colorBgLayout};
-      }
+  .active {
+    background-color: ${({ theme }) => theme.colors.grayscale.base};
+    svg {
+      color: ${({ theme }) => theme.colors.grayscale.light5};
     }
-  `}
+  }
 `;
 
 const EmptyWrapper = styled.div`
-  ${({ theme }) => `
-    padding: ${theme.sizeUnit * 40}px 0;
+  padding: ${({ theme }) => theme.gridUnit * 40}px 0;
 
-    &.table {
-      background: ${theme.colorBgContainer};
-    }
-  `}
+  &.table {
+    background: ${({ theme }) => theme.colors.grayscale.light5};
+  }
 `;
 
 const ViewModeToggle = ({
@@ -207,7 +187,7 @@ const ViewModeToggle = ({
       }}
       className={cx('toggle-button', { active: mode === 'card' })}
     >
-      <Icons.AppstoreOutlined iconSize="xl" />
+      <Icons.CardView />
     </div>
     <div
       role="button"
@@ -218,7 +198,7 @@ const ViewModeToggle = ({
       }}
       className={cx('toggle-button', { active: mode === 'table' })}
     >
-      <Icons.UnorderedListOutlined iconSize="xl" />
+      <Icons.ListView />
     </div>
   </ViewModeContainer>
 );
@@ -256,7 +236,7 @@ export interface ListViewProps<T extends object = any> {
   bulkTagResourceName?: string;
 }
 
-export function ListView<T extends object = any>({
+function ListView<T extends object = any>({
   columns,
   data,
   count,
@@ -362,12 +342,12 @@ export function ListView<T extends object = any>({
           onHide={() => setShowBulkTagModal(false)}
         />
       )}
-      <div data-test={className} className={`superset-list-view ${className} `}>
+      <div data-test={className} className={`superset-list-view ${className}`}>
         <div className="header">
           {cardViewEnabled && (
             <ViewModeToggle mode={viewMode} setMode={setViewMode} />
           )}
-          <div className="controls" data-test="filters-select">
+          <div className="controls">
             {filterable && (
               <FilterControls
                 ref={filterControlsRef}
@@ -385,7 +365,7 @@ export function ListView<T extends object = any>({
             )}
           </div>
         </div>
-        <div className={`body ${rows.length === 0 ? 'empty' : ''} `}>
+        <div className={`body ${rows.length === 0 ? 'empty' : ''}`}>
           {bulkSelectEnabled && (
             <BulkSelectWrapper
               data-test="bulk-select-controls"
@@ -402,7 +382,6 @@ export function ListView<T extends object = any>({
                     <>
                       <span
                         data-test="bulk-select-deselect-all"
-                        style={{ cursor: 'pointer' }}
                         role="button"
                         tabIndex={0}
                         className="deselect-all"
@@ -419,7 +398,7 @@ export function ListView<T extends object = any>({
                           cta
                           onClick={() =>
                             action.onSelect(
-                              selectedFlatRows.map((r: any) => r.original),
+                              selectedFlatRows.map(r => r.original),
                             )
                           }
                         >
@@ -430,7 +409,6 @@ export function ListView<T extends object = any>({
                         <span
                           data-test="bulk-select-tag-btn"
                           role="button"
-                          style={{ cursor: 'pointer' }}
                           tabIndex={0}
                           className="tag-btn"
                           onClick={() => setShowBulkTagModal(true)}
@@ -455,45 +433,20 @@ export function ListView<T extends object = any>({
             />
           )}
           {viewMode === 'table' && (
-            <>
-              {loading && rows.length === 0 ? (
-                <FullPageLoadingWrapper>
-                  <Loading />
-                </FullPageLoadingWrapper>
-              ) : (
-                <TableCollection
-                  getTableProps={getTableProps}
-                  getTableBodyProps={getTableBodyProps}
-                  prepareRow={prepareRow}
-                  headerGroups={headerGroups}
-                  setSortBy={setSortBy}
-                  rows={rows}
-                  columns={columns}
-                  loading={loading && rows.length > 0}
-                  highlightRowId={highlightRowId}
-                  columnsForWrapText={columnsForWrapText}
-                  bulkSelectEnabled={bulkSelectEnabled}
-                  selectedFlatRows={selectedFlatRows}
-                  toggleRowSelected={(rowId, value) => {
-                    const row = rows.find((r: any) => r.id === rowId);
-                    if (row) {
-                      prepareRow(row);
-                      (row as any).toggleRowSelected(value);
-                    }
-                  }}
-                  toggleAllRowsSelected={toggleAllRowsSelected}
-                  pageIndex={pageIndex}
-                  pageSize={pageSize}
-                  totalCount={count}
-                  onPageChange={newPageIndex => {
-                    gotoPage(newPageIndex);
-                  }}
-                />
-              )}
-            </>
+            <TableCollection
+              getTableProps={getTableProps}
+              getTableBodyProps={getTableBodyProps}
+              prepareRow={prepareRow}
+              headerGroups={headerGroups}
+              rows={rows}
+              columns={columns}
+              loading={loading}
+              highlightRowId={highlightRowId}
+              columnsForWrapText={columnsForWrapText}
+            />
           )}
           {!loading && rows.length === 0 && (
-            <EmptyWrapper className={viewMode} data-test="empty-state">
+            <EmptyWrapper className={viewMode}>
               {query.filters ? (
                 <EmptyState
                   title={t('No results match your filter criteria')}
@@ -515,6 +468,27 @@ export function ListView<T extends object = any>({
           )}
         </div>
       </div>
+      {rows.length > 0 && (
+        <div className="pagination-container">
+          <Pagination
+            totalPages={pageCount || 0}
+            currentPage={pageCount && pageIndex < pageCount ? pageIndex + 1 : 0}
+            onChange={(p: number) => gotoPage(p - 1)}
+            hideFirstAndLastPageLinks
+          />
+          <div className="row-count-container">
+            {!loading &&
+              t(
+                '%s-%s of %s',
+                pageSize * pageIndex + (rows.length && 1),
+                pageSize * pageIndex + rows.length,
+                count,
+              )}
+          </div>
+        </div>
+      )}
     </ListViewStyles>
   );
 }
+
+export default ListView;

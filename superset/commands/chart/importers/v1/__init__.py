@@ -14,27 +14,23 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from __future__ import annotations
 
 from typing import Any
 
 from marshmallow import Schema
 from sqlalchemy.orm import Session  # noqa: F401
 
-from superset import db
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.chart.exceptions import ChartImportError
 from superset.commands.chart.importers.v1.utils import import_chart
 from superset.commands.database.importers.v1.utils import import_database
 from superset.commands.dataset.importers.v1.utils import import_dataset
 from superset.commands.importers.v1 import ImportModelsCommand
-from superset.commands.importers.v1.utils import import_tag
 from superset.commands.utils import update_chart_config_dataset
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.chart import ChartDAO
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
-from superset.extensions import feature_flag_manager
 
 
 class ImportChartsCommand(ImportModelsCommand):
@@ -51,13 +47,7 @@ class ImportChartsCommand(ImportModelsCommand):
     import_error = ChartImportError
 
     @staticmethod
-    # ruff: noqa: C901
-    def _import(
-        configs: dict[str, Any],
-        overwrite: bool = False,
-        contents: dict[str, Any] | None = None,
-    ) -> None:
-        contents = {} if contents is None else contents
+    def _import(configs: dict[str, Any], overwrite: bool = False) -> None:  # noqa: C901
         # discover datasets associated with charts
         dataset_uuids: set[str] = set()
         for file_name, config in configs.items():
@@ -103,12 +93,4 @@ class ImportChartsCommand(ImportModelsCommand):
                     "datasource_name": dataset.table_name,
                 }
                 config = update_chart_config_dataset(config, dataset_dict)
-                chart = import_chart(config, overwrite=overwrite)
-
-                # Handle tags using import_tag function
-                if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-                    if "tags" in config:
-                        target_tag_names = config["tags"]
-                        import_tag(
-                            target_tag_names, contents, chart.id, "chart", db.session
-                        )
+                import_chart(config, overwrite=overwrite)

@@ -17,14 +17,15 @@
 
 import logging
 
+import pandas as pd
 from sqlalchemy import BigInteger, Float, inspect, Text
 
 import superset.utils.database as database_utils
 from superset import db
-from superset.sql.parse import Table
+from superset.sql_parse import Table
 from superset.utils import json
 
-from .helpers import get_table_connector_registry, read_example_data
+from .helpers import get_example_url, get_table_connector_registry
 
 logger = logging.getLogger(__name__)
 
@@ -39,9 +40,8 @@ def load_sf_population_polygons(
         table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
-            df = read_example_data(
-                "examples://sf_population.json.gz", compression="gzip"
-            )
+            url = get_example_url("sf_population.json.gz")
+            df = pd.read_json(url, compression="gzip")
             df["contour"] = df.contour.map(json.dumps)
 
             df.to_sql(
@@ -59,7 +59,7 @@ def load_sf_population_polygons(
                 index=False,
             )
 
-    logger.debug("Creating table %s reference", tbl_name)
+    logger.debug(f"Creating table {tbl_name} reference")
     table = get_table_connector_registry()
     tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not tbl:

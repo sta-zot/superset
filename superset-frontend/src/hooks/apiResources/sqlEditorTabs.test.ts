@@ -33,7 +33,6 @@ import {
 const expectedQueryEditor = {
   version: LatestQueryEditorVersion,
   id: '123',
-  immutableId: 'immutable-id',
   dbId: 456,
   name: 'tab 1',
   sql: 'SELECT * from example_table',

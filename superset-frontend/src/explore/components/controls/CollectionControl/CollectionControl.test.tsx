@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
+import { render, screen } from 'spec/helpers/testing-library';
 import CollectionControl from '.';
 
 jest.mock('@superset-ui/chart-controls', () => ({
-  InfoTooltip: (props: any) => (
+  InfoTooltipWithTrigger: (props: any) => (
     <button
       onClick={props.onClick}
       type="button"
@@ -105,10 +106,10 @@ test('Should have add button', async () => {
   render(<CollectionControl {...props} />);
 
   expect(
-    await screen.findByRole('button', { name: 'plus' }),
+    await screen.findByRole('button', { name: 'plus-large' }),
   ).toBeInTheDocument();
   expect(props.onChange).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'plus' }));
+  userEvent.click(screen.getByRole('button', { name: 'plus-large' }));
   expect(props.onChange).toHaveBeenCalledWith([
     { key: 'hrYAZ5iBH' },
     undefined,
@@ -119,12 +120,11 @@ test('Should have remove button', async () => {
   const props = createProps();
   render(<CollectionControl {...props} />);
 
-  const removeButton = await screen.findByRole('img', { name: 'close' });
-  expect(removeButton).toBeInTheDocument();
+  expect(
+    await screen.findByRole('button', { name: 'remove-item' }),
+  ).toBeInTheDocument();
   expect(props.onChange).toHaveBeenCalledTimes(0);
-  const buttonElement = removeButton.closest('button');
-  expect(buttonElement).not.toBeNull();
-  userEvent.click(buttonElement!);
+  userEvent.click(screen.getByRole('button', { name: 'remove-item' }));
   expect(props.onChange).toHaveBeenCalledWith([]);
 });
 

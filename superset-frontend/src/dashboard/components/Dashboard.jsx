@@ -20,8 +20,8 @@ import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 
-import { Loading } from '@superset-ui/core/components';
-import { PluginContext } from 'src/components';
+import { PluginContext } from 'src/components/DynamicPlugins';
+import Loading from 'src/components/Loading';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import getChartIdsFromLayout from '../util/getChartIdsFromLayout';
 import getLayoutComponentFromChartId from '../util/getLayoutComponentFromChartId';
@@ -120,12 +120,15 @@ class Dashboard extends PureComponent {
     this.applyCharts();
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate() {
     this.applyCharts();
-    const currentChartIds = getChartIdsFromLayout(prevProps.layout);
-    const nextChartIds = getChartIdsFromLayout(this.props.layout);
+  }
 
-    if (prevProps.dashboardId !== this.props.dashboardId) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
+    const currentChartIds = getChartIdsFromLayout(this.props.layout);
+    const nextChartIds = getChartIdsFromLayout(nextProps.layout);
+
+    if (this.props.dashboardId !== nextProps.dashboardId) {
       // single-page-app navigation check
       return;
     }
@@ -137,7 +140,7 @@ class Dashboard extends PureComponent {
       newChartIds.forEach(newChartId =>
         this.props.actions.addSliceToDashboard(
           newChartId,
-          getLayoutComponentFromChartId(this.props.layout, newChartId),
+          getLayoutComponentFromChartId(nextProps.layout, newChartId),
         ),
       );
     } else if (currentChartIds.length > nextChartIds.length) {

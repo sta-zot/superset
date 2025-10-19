@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, ReactElement, useCallback } from 'react';
+import { useState, useEffect, ReactElement } from 'react';
 
 import {
   ensureIsArray,
@@ -25,22 +25,15 @@ import {
   getChartMetadataRegistry,
   getClientErrorObject,
 } from '@superset-ui/core';
-import { EmptyState, Loading } from '@superset-ui/core/components';
+import Loading from 'src/components/Loading';
+import { EmptyState } from 'src/components/EmptyState';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { ResultsPaneProps, QueryResultInterface } from '../types';
 import { SingleQueryResultPane } from './SingleQueryResultPane';
 import { TableControls } from './DataTableControls';
 
 const Error = styled.pre`
-  margin-top: ${({ theme }) => `${theme.sizeUnit * 4}px`};
-`;
-
-const StyledDiv = styled.div`
-  ${() => `
-    display: flex;
-    height: 100%;
-    flex-direction: column;
-    `}
+  margin-top: ${({ theme }) => `${theme.gridUnit * 4}px`};
 `;
 
 const cache = new WeakMap();
@@ -51,7 +44,7 @@ export const useResultsPane = ({
   queryForce,
   ownState,
   errorMessage,
-  setForceQuery,
+  actions,
   isVisible,
   dataSize = 50,
   canDownload,
@@ -64,9 +57,6 @@ export const useResultsPane = ({
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [responseError, setResponseError] = useState<string>('');
   const queryCount = metadata?.queryObjectCount ?? 1;
-  const isQueryCountDynamic = metadata?.dynamicQueryObjectCount;
-
-  const noOpInputChange = useCallback(() => {}, []);
 
   useEffect(() => {
     // it's an invalid formData when gets a errorMessage
@@ -74,8 +64,8 @@ export const useResultsPane = ({
     if (isRequest && cache.has(queryFormData)) {
       setResultResp(ensureIsArray(cache.get(queryFormData)));
       setResponseError('');
-      if (queryForce) {
-        setForceQuery?.(false);
+      if (queryForce && actions) {
+        actions.setForceQuery(false);
       }
       setIsLoading(false);
     }
@@ -92,8 +82,8 @@ export const useResultsPane = ({
           setResultResp(ensureIsArray(json.result));
           setResponseError('');
           cache.set(queryFormData, json.result);
-          if (queryForce) {
-            setForceQuery?.(false);
+          if (queryForce && actions) {
+            actions.setForceQuery(false);
           }
         })
         .catch(response => {
@@ -120,7 +110,7 @@ export const useResultsPane = ({
   if (errorMessage) {
     const title = t('Run a query to display results');
     return Array(queryCount).fill(
-      <EmptyState image="document.svg" title={title} size="small" />,
+      <EmptyState image="document.svg" title={title} />,
     );
   }
 
@@ -133,7 +123,7 @@ export const useResultsPane = ({
           columnTypes={[]}
           rowcount={0}
           datasourceId={queryFormData.datasource}
-          onInputChange={noOpInputChange}
+          onInputChange={() => {}}
           isLoading={false}
           canDownload={canDownload}
         />
@@ -146,15 +136,12 @@ export const useResultsPane = ({
   if (resultResp.length === 0) {
     const title = t('No results were returned for this query');
     return Array(queryCount).fill(
-      <EmptyState image="document.svg" title={title} size="small" />,
+      <EmptyState image="document.svg" title={title} />,
     );
   }
-  const resultRespToDisplay = isQueryCountDynamic
-    ? resultResp
-    : resultResp.slice(0, queryCount);
-
-  return resultRespToDisplay.map((result, idx) => (
-    <StyledDiv key={idx}>
+  return resultResp
+    .slice(0, queryCount)
+    .map((result, idx) => (
       <SingleQueryResultPane
         data={result.data}
         colnames={result.colnames}
@@ -162,9 +149,9 @@ export const useResultsPane = ({
         rowcount={result.rowcount}
         dataSize={dataSize}
         datasourceId={queryFormData.datasource}
+        key={idx}
         isVisible={isVisible}
         canDownload={canDownload}
       />
-    </StyledDiv>
-  ));
+    ));
 };

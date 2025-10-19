@@ -37,7 +37,7 @@ from superset.utils import json  # noqa: E402
 
 Base = declarative_base()
 
-logger = logging.getLogger("alembic.env")
+logger = logging.getLogger("alembic")
 
 
 class Dashboard(Base):

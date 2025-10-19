@@ -18,17 +18,11 @@
  */
 import { Component } from 'react';
 import PropTypes from 'prop-types';
-import {
-  Button,
-  Col,
-  Divider,
-  InfoTooltip,
-  Input,
-  Row,
-  Select,
-} from '@superset-ui/core/components';
+import { Input } from 'src/components/Input';
+import Button from 'src/components/Button';
+import { Select, Row, Col } from 'src/components';
 import { t, styled } from '@superset-ui/core';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import BoundsControl from '../BoundsControl';
 import CheckboxControl from '../CheckboxControl';
 import ControlPopover from '../ControlPopover/ControlPopover';
@@ -47,7 +41,6 @@ const propTypes = {
   bounds: PropTypes.array,
   d3format: PropTypes.string,
   dateFormat: PropTypes.string,
-  sparkType: PropTypes.string,
   onChange: PropTypes.func,
 };
 
@@ -65,7 +58,6 @@ const defaultProps = {
   bounds: [null, null],
   d3format: '',
   dateFormat: '',
-  sparkType: 'line',
 };
 
 const comparisonTypeOptions = [
@@ -82,14 +74,8 @@ const colTypeOptions = [
   { value: 'avg', label: t('Period average'), key: 'avg' },
 ];
 
-const sparkTypeOptions = [
-  { value: 'line', label: t('Line Chart'), key: 'line' },
-  { value: 'bar', label: t('Bar Chart'), key: 'bar' },
-  { value: 'area', label: t('Area Chart'), key: 'area' },
-];
-
 const StyledRow = styled(Row)`
-  margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
+  margin-top: ${({ theme }) => theme.gridUnit * 2}px;
   display: flex;
   align-items: center;
 `;
@@ -99,13 +85,13 @@ const StyledCol = styled(Col)`
   align-items: center;
 `;
 
-const StyledTooltip = styled(InfoTooltip)`
-  margin-left: ${({ theme }) => theme.sizeUnit}px;
-  color: ${({ theme }) => theme.colorIcon};
+const StyledTooltip = styled(InfoTooltipWithTrigger)`
+  margin-left: ${({ theme }) => theme.gridUnit}px;
+  color: ${({ theme }) => theme.colors.grayscale.light1};
 `;
 
 const ButtonBar = styled.div`
-  margin-top: ${({ theme }) => theme.sizeUnit * 5}px;
+  margin-top: ${({ theme }) => theme.gridUnit * 5}px;
   display: flex;
   justify-content: center;
 `;
@@ -138,7 +124,6 @@ export default class TimeSeriesColumnControl extends Component {
       bounds: this.props.bounds,
       d3format: this.props.d3format,
       dateFormat: this.props.dateFormat,
-      sparkType: this.props.sparkType,
       popoverVisible: false,
     };
   }
@@ -237,19 +222,7 @@ export default class TimeSeriesColumnControl extends Component {
             options={colTypeOptions}
           />,
         )}
-        <Divider />
-        {this.state.colType === 'spark' &&
-          this.formRow(
-            t('Chart type'),
-            t('Type of chart to display in sparkline'),
-            'spark-type',
-            <Select
-              ariaLabel={t('Chart Type')}
-              value={this.state.sparkType || undefined}
-              onChange={this.onSelectChange.bind(this, 'sparkType')}
-              options={sparkTypeOptions}
-            />,
-          )}
+        <hr />
         {this.state.colType === 'spark' &&
           this.formRow(
             t('Width'),
@@ -388,24 +361,14 @@ export default class TimeSeriesColumnControl extends Component {
           trigger="click"
           content={this.renderPopover()}
           title={t('Column Configuration')}
-          open={this.state.popoverVisible}
-          onOpenChange={this.onPopoverVisibleChange}
+          visible={this.state.popoverVisible}
+          onVisibleChange={this.onPopoverVisibleChange}
         >
-          <span
-            css={theme => ({
-              display: 'inline-block',
-              cursor: 'pointer',
-              '& svg path': {
-                fill: theme.colorIcon,
-                transition: `fill ${theme.motionDurationMid} ease-out`,
-              },
-              '&:hover svg path': {
-                fill: theme.colorPrimary,
-              },
-            })}
-          >
-            <Icons.EditOutlined iconSize="s" />
-          </span>
+          <InfoTooltipWithTrigger
+            icon="edit"
+            className="text-primary"
+            label="edit-ts-column"
+          />
         </ControlPopover>
       </span>
     );

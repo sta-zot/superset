@@ -17,6 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 /**
  * This file exports all controls available for use in chart plugins internal to Superset.
  * It is not recommended to use the controls here for any third-party plugins.
@@ -44,7 +45,6 @@ import {
   isDefined,
   NO_TIME_RANGE,
   validateMaxValue,
-  getColumnLabel,
 } from '@superset-ui/core';
 
 import {
@@ -82,10 +82,7 @@ import {
   dndSeriesControl,
   dndAdhocMetricControl2,
   dndXAxisControl,
-  dndTooltipColumnsControl,
-  dndTooltipMetricsControl,
 } from './dndControls';
-import { matrixifyControls } from './matrixifyControls';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
@@ -177,7 +174,6 @@ const granularity: SharedControlConfig<'SelectControl'> = {
       'can type and use simple natural language as in `10 seconds`, ' +
       '`1 day` or `56 weeks`',
   ),
-  sortComparator: () => 0, // Disable frontend sorting to preserve backend order
 };
 
 const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
@@ -205,7 +201,6 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
     choices: (datasource as Dataset)?.time_grain_sqla || [],
   }),
   visibility: displayTimeRelatedControls,
-  sortComparator: () => 0, // Disable frontend sorting to preserve backend order
 };
 
 const time_range: SharedControlConfig<'DateFilterControl'> = {
@@ -284,19 +279,6 @@ const series_limit: SharedControlConfig<'SelectControl'> = {
       'column(s) though does increase the query complexity and cost.',
   ),
 };
-
-const group_others_when_limit_reached: SharedControlConfig<'CheckboxControl'> =
-  {
-    type: 'CheckboxControl',
-    label: t('Group remaining as "Others"'),
-    default: false,
-    description: t(
-      'Groups remaining series into an "Others" category when series limit is reached. ' +
-        'This prevents incomplete time series data from being displayed.',
-    ),
-    visibility: ({ form_data }: { form_data: any }) =>
-      Boolean(form_data?.limit || form_data?.series_limit),
-  };
 
 const y_axis_format: SharedControlConfig<'SelectControl', SelectDefaultOption> =
   {
@@ -391,14 +373,6 @@ const temporal_columns_lookup: SharedControlConfig<'HiddenControl'> = {
     ),
 };
 
-const zoomable: SharedControlConfig<'CheckboxControl'> = {
-  type: 'CheckboxControl',
-  label: t('Data Zoom'),
-  default: false,
-  renderTrigger: true,
-  description: t('Enable data zooming controls'),
-};
-
 const sort_by_metric: SharedControlConfig<'CheckboxControl'> = {
   type: 'CheckboxControl',
   label: t('Sort by metric'),
@@ -407,27 +381,7 @@ const sort_by_metric: SharedControlConfig<'CheckboxControl'> = {
   ),
 };
 
-const order_by_cols: SharedControlConfig<'SelectControl'> = {
-  type: 'SelectControl',
-  label: t('Ordering'),
-  description: t('Order results by selected columns'),
-  multi: true,
-  default: [],
-  shouldMapStateToProps: () => true,
-  mapStateToProps: ({ datasource }) => ({
-    choices: (datasource?.columns || [])
-      .map(col =>
-        [true, false].map(asc => [
-          JSON.stringify([col.column_name, asc]),
-          `${getColumnLabel(col.column_name)} [${asc ? 'asc' : 'desc'}]`,
-        ]),
-      )
-      .flat(),
-  }),
-  resetOnHide: false,
-};
-
-const sharedControls: Record<string, SharedControlConfig<any>> = {
+export default {
   metrics: dndAdhocMetricsControl,
   metric: dndAdhocMetricControl,
   datasource: datasourceControl,
@@ -438,8 +392,6 @@ const sharedControls: Record<string, SharedControlConfig<any>> = {
   secondary_metric: dndSecondaryMetricControl,
   groupby: dndGroupByControl,
   columns: dndColumnsControl,
-  tooltip_columns: dndTooltipColumnsControl,
-  tooltip_metrics: dndTooltipMetricsControl,
   granularity,
   granularity_sqla: dndGranularitySqlaControl,
   time_grain_sqla,
@@ -461,20 +413,12 @@ const sharedControls: Record<string, SharedControlConfig<any>> = {
   time_shift_color,
   series_columns: dndColumnsControl,
   series_limit,
-  group_others_when_limit_reached,
   series_limit_metric: dndSortByControl,
   legacy_order_by: dndSortByControl,
   truncate_metric,
   x_axis: dndXAxisControl,
-  zoomable,
   show_empty_columns,
   temporal_columns_lookup,
   currency_format,
   sort_by_metric,
-  order_by_cols,
-
-  // Add all Matrixify controls
-  ...matrixifyControls,
 };
-
-export default sharedControls;

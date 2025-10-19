@@ -16,15 +16,16 @@
 # under the License.
 import logging
 
+import pandas as pd
 import polyline
 from sqlalchemy import inspect, String, Text
 
 from superset import db
-from superset.sql.parse import Table
+from superset.sql_parse import Table
 from superset.utils import json
 
-from ..utils.database import get_example_database  # noqa: TID252
-from .helpers import get_table_connector_registry, read_example_data
+from ..utils.database import get_example_database
+from .helpers import get_example_url, get_table_connector_registry
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +38,8 @@ def load_bart_lines(only_metadata: bool = False, force: bool = False) -> None:
         table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
-            df = read_example_data(
-                "examples://bart-lines.json.gz", encoding="latin-1", compression="gzip"
-            )
+            url = get_example_url("bart-lines.json.gz")
+            df = pd.read_json(url, encoding="latin-1", compression="gzip")
             df["path_json"] = df.path.map(json.dumps)
             df["polyline"] = df.path.map(polyline.encode)
             del df["path"]
@@ -59,7 +59,7 @@ def load_bart_lines(only_metadata: bool = False, force: bool = False) -> None:
                 index=False,
             )
 
-    logger.debug("Creating table %s reference", tbl_name)
+    logger.debug(f"Creating table {tbl_name} reference")
     table = get_table_connector_registry()
     tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not tbl:

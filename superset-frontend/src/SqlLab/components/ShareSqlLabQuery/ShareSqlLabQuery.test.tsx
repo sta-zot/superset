@@ -16,20 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { FC } from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
-import { isFeatureEnabled } from '@superset-ui/core';
+import { Provider } from 'react-redux';
 import {
-  render,
-  screen,
-  act,
-  userEvent,
-  waitFor,
-} from 'spec/helpers/testing-library';
+  supersetTheme,
+  ThemeProvider,
+  isFeatureEnabled,
+} from '@superset-ui/core';
+import { render, screen, act, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import userEvent from '@testing-library/user-event';
 import ShareSqlLabQuery from 'src/SqlLab/components/ShareSqlLabQuery';
 import { initialState } from 'src/SqlLab/fixtures';
-import { omit } from 'lodash';
 
 const mockStore = configureStore([thunk]);
 const defaultProps = {
@@ -66,6 +67,12 @@ jest.mock('@superset-ui/core', () => ({
 
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
+const standardProvider: FC = ({ children }) => (
+  <ThemeProvider theme={supersetTheme}>
+    <Provider store={store}>{children}</Provider>
+  </ThemeProvider>
+);
+
 const unsavedQueryEditor = {
   id: defaultProps.queryEditorId,
   dbId: 9888,
@@ -76,7 +83,22 @@ const unsavedQueryEditor = {
   templateParams: '{ "my_value": "foo" }',
 };
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+const standardProviderWithUnsaved: FC = ({ children }) => (
+  <ThemeProvider theme={supersetTheme}>
+    <Provider
+      store={mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          unsavedQueryEditor,
+        },
+      })}
+    >
+      {children}
+    </Provider>
+  </ThemeProvider>
+);
+
 describe('ShareSqlLabQuery', () => {
   const storeQueryUrl = 'glob:*/api/v1/sqllab/permalink';
   const storeQueryMockId = 'ci39c3';
@@ -93,9 +115,8 @@ describe('ShareSqlLabQuery', () => {
     jest.clearAllMocks();
   });
 
-  afterAll(() => fetchMock.reset());
+  afterAll(fetchMock.reset);
 
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('via permalink api', () => {
     beforeAll(() => {
       mockedIsFeatureEnabled.mockImplementation(() => true);
@@ -105,15 +126,14 @@ describe('ShareSqlLabQuery', () => {
       mockedIsFeatureEnabled.mockReset();
     });
 
-    test('calls storeQuery() with the query when getCopyUrl() is called', async () => {
+    it('calls storeQuery() with the query when getCopyUrl() is called', async () => {
       await act(async () => {
         render(<ShareSqlLabQuery {...defaultProps} />, {
-          useRedux: true,
-          store,
+          wrapper: standardProvider,
         });
       });
       const button = screen.getByRole('button');
-      const expected = omit(mockQueryEditor, ['id', 'remoteId']);
+      const { id, remoteId, ...expected } = mockQueryEditor;
       userEvent.click(button);
       await waitFor(() =>
         expect(fetchMock.calls(storeQueryUrl)).toHaveLength(1),
@@ -123,21 +143,14 @@ describe('ShareSqlLabQuery', () => {
       ).toEqual(expected);
     });
 
-    test('calls storeQuery() with unsaved changes', async () => {
+    it('calls storeQuery() with unsaved changes', async () => {
       await act(async () => {
         render(<ShareSqlLabQuery {...defaultProps} />, {
-          useRedux: true,
-          store: mockStore({
-            ...initialState,
-            sqlLab: {
-              ...initialState.sqlLab,
-              unsavedQueryEditor,
-            },
-          }),
+          wrapper: standardProviderWithUnsaved,
         });
       });
       const button = screen.getByRole('button');
-      const expected = omit(unsavedQueryEditor, ['id']);
+      const { id, ...expected } = unsavedQueryEditor;
       userEvent.click(button);
       await waitFor(() =>
         expect(fetchMock.calls(storeQueryUrl)).toHaveLength(1),

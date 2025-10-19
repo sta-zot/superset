@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-env browser */
-import { extendedDayjs } from '@superset-ui/core/utils/dates';
+import { extendedDayjs } from 'src/utils/dates';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   styled,
@@ -35,33 +35,25 @@ import {
   LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
   LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
 } from 'src/logger/LogUtils';
-import { Icons } from '@superset-ui/core/components/Icons';
-import {
-  Button,
-  Tooltip,
-  DeleteModal,
-  UnsavedChangesModal,
-} from '@superset-ui/core/components';
+import Icons from 'src/components/Icons';
+import { Button } from 'src/components/';
 import { findPermission } from 'src/utils/findPermission';
+import { Tooltip } from 'src/components/Tooltip';
 import { safeStringify } from 'src/utils/safeStringify';
+import ConnectedHeaderActionsDropdown from 'src/dashboard/components/Header/HeaderActionsDropdown';
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
-import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
 import {
   UNDO_LIMIT,
   SAVE_TYPE_OVERWRITE,
   DASHBOARD_POSITION_DATA_LIMIT,
   DASHBOARD_HEADER_ID,
 } from 'src/dashboard/util/constants';
-import { TagTypeEnum } from 'src/components/Tag/TagType';
 import setPeriodicRunner, {
   stopPeriodicRender,
 } from 'src/dashboard/util/setPeriodicRunner';
-import ReportModal from 'src/features/reports/ReportModal';
-import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
-import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
-import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
+import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
 import {
@@ -89,22 +81,22 @@ import {
   setMaxUndoHistoryExceeded,
   setRefreshFrequency,
   setUnsavedChanges,
+  updateCss,
 } from '../../actions/dashboardState';
 import { logEvent } from '../../../logger/actions';
 import { dashboardInfoChanged } from '../../actions/dashboardInfo';
 import isDashboardLoading from '../../util/isDashboardLoading';
 import { useChartIds } from '../../util/charts/useChartIds';
 import { useDashboardMetadataBar } from './useDashboardMetadataBar';
-import { useHeaderActionsMenu } from './useHeaderActionsDropdownMenu';
 
 const extensionsRegistry = getExtensionsRegistry();
 
 const headerContainerStyle = theme => css`
-  border-bottom: 1px solid ${theme.colorBorder};
+  border-bottom: 1px solid ${theme.colors.grayscale.light2};
 `;
 
 const editButtonStyle = theme => css`
-  color: ${theme.colorPrimary};
+  color: ${theme.colors.primary.dark2};
 `;
 
 const actionButtonsStyle = theme => css`
@@ -112,12 +104,12 @@ const actionButtonsStyle = theme => css`
   align-items: center;
 
   .action-schedule-report {
-    margin-left: ${theme.sizeUnit * 2}px;
+    margin-left: ${theme.gridUnit * 2}px;
   }
 
   .undoRedo {
     display: flex;
-    margin-right: ${theme.sizeUnit * 2}px;
+    margin-right: ${theme.gridUnit * 2}px;
   }
 `;
 
@@ -130,31 +122,28 @@ const StyledUndoRedoButton = styled(Button)`
 `;
 
 const undoRedoStyle = theme => css`
-  color: ${theme.colorIcon};
+  color: ${theme.colors.grayscale.light1};
   &:hover {
-    color: ${theme.colorIconHover};
+    color: ${theme.colors.grayscale.base};
   }
 `;
 
 const undoRedoEmphasized = theme => css`
-  color: ${theme.colorIcon};
+  color: ${theme.colors.grayscale.base};
 `;
 
 const undoRedoDisabled = theme => css`
-  color: ${theme.colorTextDisabled};
+  color: ${theme.colors.grayscale.light2};
 `;
 
 const saveBtnStyle = theme => css`
-  min-width: ${theme.sizeUnit * 17}px;
-  height: ${theme.sizeUnit * 8}px;
-  span > :first-of-type {
-    margin-right: 0;
-  }
+  min-width: ${theme.gridUnit * 17}px;
+  height: ${theme.gridUnit * 8}px;
 `;
 
 const discardBtnStyle = theme => css`
-  min-width: ${theme.sizeUnit * 22}px;
-  height: ${theme.sizeUnit * 8}px;
+  min-width: ${theme.gridUnit * 22}px;
+  height: ${theme.gridUnit * 8}px;
 `;
 
 const discardChanges = () => {
@@ -171,10 +160,8 @@ const Header = () => {
   const [emphasizeUndo, setEmphasizeUndo] = useState(false);
   const [emphasizeRedo, setEmphasizeRedo] = useState(false);
   const [showingPropertiesModal, setShowingPropertiesModal] = useState(false);
-  const [showingRefreshModal, setShowingRefreshModal] = useState(false);
+  const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [showingEmbedModal, setShowingEmbedModal] = useState(false);
-  const [showingReportModal, setShowingReportModal] = useState(false);
-  const [currentReportDeleting, setCurrentReportDeleting] = useState(null);
   const dashboardInfo = useSelector(state => state.dashboardInfo);
   const layout = useSelector(state => state.dashboardLayout.present);
   const undoLength = useSelector(state => state.dashboardLayout.past.length);
@@ -202,7 +189,7 @@ const Header = () => {
       refreshFrequency: state.dashboardState.refreshFrequency,
       shouldPersistRefreshFrequency:
         !!state.dashboardState.shouldPersistRefreshFrequency,
-      customCss: state.dashboardInfo.css,
+      customCss: state.dashboardState.css,
       colorNamespace: state.dashboardState.colorNamespace,
       colorScheme: state.dashboardState.colorScheme,
       isStarred: !!state.dashboardState.isStarred,
@@ -243,6 +230,7 @@ const Header = () => {
           savePublished,
           fetchCharts,
           updateDashboardTitle,
+          updateCss,
           onChange,
           onSave: saveDashboardRequest,
           setMaxUndoHistoryExceeded,
@@ -325,13 +313,6 @@ const Header = () => {
     startPeriodicRender(refreshFrequency * 1000);
   }, [refreshFrequency, startPeriodicRender]);
 
-  // Ensure theme changes are tracked as unsaved changes
-  useEffect(() => {
-    if (editMode && dashboardInfo.theme !== undefined) {
-      boundActionCreators.setUnsavedChanges(true);
-    }
-  }, [dashboardInfo.theme, editMode, boundActionCreators]);
-
   useEffect(() => {
     if (UNDO_LIMIT - undoLength <= 0 && !didNotifyMaxUndoHistoryToast) {
       setDidNotifyMaxUndoHistoryToast(true);
@@ -366,6 +347,10 @@ const Header = () => {
     },
     [boundActionCreators, dashboardTitle],
   );
+
+  const setDropdownVisible = useCallback(visible => {
+    setIsDropdownVisible(visible);
+  }, []);
 
   const handleCtrlY = useCallback(() => {
     boundActionCreators.onRedo();
@@ -423,10 +408,6 @@ const Header = () => {
       owners: dashboardInfo.owners,
       roles: dashboardInfo.roles,
       slug,
-      tags: (dashboardInfo.tags || []).filter(
-        item => item.type === TagTypeEnum.Custom || !item.type,
-      ),
-      theme_id: dashboardInfo.theme ? dashboardInfo.theme.id : null,
       metadata: {
         ...dashboardInfo?.metadata,
         color_namespace: currentColorNamespace,
@@ -471,23 +452,12 @@ const Header = () => {
     dashboardInfo.metadata,
     dashboardInfo.owners,
     dashboardInfo.roles,
-    dashboardInfo.tags,
     dashboardTitle,
     layout,
     refreshFrequency,
     shouldPersistRefreshFrequency,
     slug,
   ]);
-
-  const {
-    showModal: showUnsavedChangesModal,
-    setShowModal: setShowUnsavedChangesModal,
-    handleConfirmNavigation,
-    handleSaveAndCloseModal,
-  } = useUnsavedChangesPrompt({
-    hasUnsavedChanges,
-    onSave: overwriteDashboard,
-  });
 
   const showPropertiesModal = useCallback(() => {
     setShowingPropertiesModal(true);
@@ -496,12 +466,6 @@ const Header = () => {
   const hidePropertiesModal = useCallback(() => {
     setShowingPropertiesModal(false);
   }, []);
-  const showRefreshModal = useCallback(() => {
-    setShowingRefreshModal(true);
-  }, []);
-  const hideRefreshModal = useCallback(() => {
-    setShowingRefreshModal(false);
-  }, []);
 
   const showEmbedModal = useCallback(() => {
     setShowingEmbedModal(true);
@@ -509,14 +473,6 @@ const Header = () => {
 
   const hideEmbedModal = useCallback(() => {
     setShowingEmbedModal(false);
-  }, []);
-
-  const showReportModal = useCallback(() => {
-    setShowingReportModal(true);
-  }, []);
-
-  const hideReportModal = useCallback(() => {
-    setShowingReportModal(false);
   }, []);
 
   const metadataBar = useDashboardMetadataBar(dashboardInfo);
@@ -528,6 +484,11 @@ const Header = () => {
   const userCanCurate =
     isFeatureEnabled(FeatureFlag.EmbeddedSuperset) &&
     findPermission('can_set_embedded', 'Dashboard', user.roles);
+  const refreshLimit =
+    dashboardInfo.common?.conf?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
+  const refreshWarning =
+    dashboardInfo.common?.conf
+      ?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE;
   const isEmbedded = !dashboardInfo?.userId;
 
   const handleOnPropertiesChange = useCallback(
@@ -539,23 +500,9 @@ const Header = () => {
         certification_details: updates.certificationDetails,
         owners: updates.owners,
         roles: updates.roles,
-        tags: updates.tags,
-        theme_id: updates.themeId,
-        css: updates.css,
       });
       boundActionCreators.setUnsavedChanges(true);
-
-      if (updates.title && dashboardTitle !== updates.title) {
-        boundActionCreators.updateDashboardTitle(updates.title);
-        boundActionCreators.onChange();
-      }
-    },
-    [boundActionCreators, dashboardTitle],
-  );
-
-  const handleRefreshChange = useCallback(
-    (refreshFrequency, editMode) => {
-      boundActionCreators.setRefreshFrequency(refreshFrequency, !!editMode);
+      boundActionCreators.dashboardTitleChanged(updates.title);
     },
     [boundActionCreators],
   );
@@ -639,9 +586,7 @@ const Header = () => {
                     <StyledUndoRedoButton
                       buttonStyle="link"
                       disabled={undoLength < 1}
-                      onClick={
-                        undoLength > 0 ? boundActionCreators.onUndo : undefined
-                      }
+                      onClick={undoLength && boundActionCreators.onUndo}
                     >
                       <Icons.Undo
                         css={[
@@ -661,9 +606,7 @@ const Header = () => {
                     <StyledUndoRedoButton
                       buttonStyle="link"
                       disabled={redoLength < 1}
-                      onClick={
-                        redoLength > 0 ? boundActionCreators.onRedo : undefined
-                      }
+                      onClick={redoLength && boundActionCreators.onRedo}
                     >
                       <Icons.Redo
                         css={[
@@ -681,7 +624,7 @@ const Header = () => {
                   css={discardBtnStyle}
                   buttonSize="small"
                   onClick={discardChanges}
-                  buttonStyle="secondary"
+                  buttonStyle="default"
                   data-test="discard-changes-button"
                   aria-label={t('Discard')}
                 >
@@ -696,7 +639,6 @@ const Header = () => {
                   data-test="header-save-button"
                   aria-label={t('Save')}
                 >
-                  <Icons.SaveOutlined iconSize="m" />
                   {t('Save')}
                 </Button>
               </div>
@@ -747,42 +689,92 @@ const Header = () => {
     ],
   );
 
-  const handleReportDelete = async report => {
-    await dispatch(deleteActiveReport(report));
-    setCurrentReportDeleting(null);
-  };
+  const menuDropdownProps = useMemo(
+    () => ({
+      getPopupContainer: triggerNode =>
+        triggerNode.closest('.header-with-actions'),
+      visible: isDropdownVisible,
+      onVisibleChange: setDropdownVisible,
+    }),
+    [isDropdownVisible, setDropdownVisible],
+  );
 
-  const [menu, isDropdownVisible, setIsDropdownVisible] = useHeaderActionsMenu({
-    addSuccessToast: boundActionCreators.addSuccessToast,
-    addDangerToast: boundActionCreators.addDangerToast,
-    dashboardInfo,
-    dashboardId: dashboardInfo.id,
-    dashboardTitle,
-    dataMask,
-    layout,
-    expandedSlices,
-    customCss,
-    colorNamespace,
-    colorScheme,
-    onSave: boundActionCreators.onSave,
-    forceRefreshAllCharts: forceRefresh,
-    refreshFrequency,
-    shouldPersistRefreshFrequency,
-    editMode,
-    hasUnsavedChanges,
-    userCanEdit,
-    userCanShare,
-    userCanSave: userCanSaveAs,
-    userCanCurate,
-    isLoading,
-    showReportModal,
-    showPropertiesModal,
-    showRefreshModal,
-    setCurrentReportDeleting,
-    manageEmbedded: showEmbedModal,
-    lastModifiedTime: actualLastModifiedTime,
-    logEvent: boundActionCreators.logEvent,
-  });
+  const additionalActionsMenu = useMemo(
+    () => (
+      <ConnectedHeaderActionsDropdown
+        addSuccessToast={boundActionCreators.addSuccessToast}
+        addDangerToast={boundActionCreators.addDangerToast}
+        dashboardId={dashboardInfo.id}
+        dashboardTitle={dashboardTitle}
+        dashboardInfo={dashboardInfo}
+        dataMask={dataMask}
+        layout={layout}
+        expandedSlices={expandedSlices}
+        customCss={customCss}
+        colorNamespace={colorNamespace}
+        colorScheme={colorScheme}
+        onSave={boundActionCreators.onSave}
+        onChange={boundActionCreators.onChange}
+        forceRefreshAllCharts={forceRefresh}
+        startPeriodicRender={startPeriodicRender}
+        refreshFrequency={refreshFrequency}
+        shouldPersistRefreshFrequency={shouldPersistRefreshFrequency}
+        setRefreshFrequency={boundActionCreators.setRefreshFrequency}
+        updateCss={boundActionCreators.updateCss}
+        editMode={editMode}
+        hasUnsavedChanges={hasUnsavedChanges}
+        userCanEdit={userCanEdit}
+        userCanShare={userCanShare}
+        userCanSave={userCanSaveAs}
+        userCanCurate={userCanCurate}
+        isLoading={isLoading}
+        showPropertiesModal={showPropertiesModal}
+        manageEmbedded={showEmbedModal}
+        refreshLimit={refreshLimit}
+        refreshWarning={refreshWarning}
+        lastModifiedTime={actualLastModifiedTime}
+        isDropdownVisible={isDropdownVisible}
+        setIsDropdownVisible={setDropdownVisible}
+        logEvent={boundActionCreators.logEvent}
+      />
+    ),
+    [
+      actualLastModifiedTime,
+      boundActionCreators.addDangerToast,
+      boundActionCreators.addSuccessToast,
+      boundActionCreators.logEvent,
+      boundActionCreators.onChange,
+      boundActionCreators.onSave,
+      boundActionCreators.setRefreshFrequency,
+      boundActionCreators.updateCss,
+      colorNamespace,
+      colorScheme,
+      customCss,
+      dashboardInfo,
+      dashboardTitle,
+      dataMask,
+      editMode,
+      expandedSlices,
+      forceRefresh,
+      hasUnsavedChanges,
+      isDropdownVisible,
+      isLoading,
+      layout,
+      refreshFrequency,
+      refreshLimit,
+      refreshWarning,
+      setDropdownVisible,
+      shouldPersistRefreshFrequency,
+      showEmbedModal,
+      showPropertiesModal,
+      startPeriodicRender,
+      userCanCurate,
+      userCanEdit,
+      userCanSaveAs,
+      userCanShare,
+    ],
+  );
+
   return (
     <div
       css={headerContainerStyle}
@@ -796,11 +788,8 @@ const Header = () => {
         faveStarProps={faveStarProps}
         titlePanelAdditionalItems={titlePanelAdditionalItems}
         rightPanelAdditionalItems={rightPanelAdditionalItems}
-        menuDropdownProps={{
-          open: isDropdownVisible,
-          onOpenChange: setIsDropdownVisible,
-        }}
-        additionalActionsMenu={menu}
+        menuDropdownProps={menuDropdownProps}
+        additionalActionsMenu={additionalActionsMenu}
         showFaveStar={user?.userId && dashboardInfo?.id}
         showTitlePanelItems
       />
@@ -814,49 +803,6 @@ const Header = () => {
           colorScheme={colorScheme}
           onSubmit={handleOnPropertiesChange}
           onlyApply
-        />
-      )}
-      {showingRefreshModal && (
-        <RefreshIntervalModal
-          show={showingRefreshModal}
-          onHide={hideRefreshModal}
-          refreshFrequency={refreshFrequency}
-          onChange={handleRefreshChange}
-          editMode={editMode}
-          refreshLimit={
-            dashboardInfo.common?.conf
-              ?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT
-          }
-          refreshWarning={
-            dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_WARNING_MESSAGE
-          }
-          addSuccessToast={boundActionCreators.addSuccessToast}
-        />
-      )}
-
-      <ReportModal
-        userId={user.userId}
-        show={showingReportModal}
-        onHide={hideReportModal}
-        userEmail={user.email}
-        dashboardId={dashboardInfo.id}
-        creationMethod="dashboards"
-      />
-
-      {currentReportDeleting && (
-        <DeleteModal
-          description={t(
-            'This action will permanently delete %s.',
-            currentReportDeleting?.name,
-          )}
-          onConfirm={() => {
-            if (currentReportDeleting) {
-              handleReportDelete(currentReportDeleting);
-            }
-          }}
-          onHide={() => setCurrentReportDeleting(null)}
-          open
-          title={t('Delete Report?')}
         />
       )}
 
@@ -875,15 +821,6 @@ const Header = () => {
             border-right: none;
           }
         `}
-      />
-
-      <UnsavedChangesModal
-        title={t('Save changes to your dashboard?')}
-        body={t("If you don't save, changes will be lost.")}
-        showModal={showUnsavedChangesModal}
-        onHide={() => setShowUnsavedChangesModal(false)}
-        onConfirmNavigation={handleConfirmNavigation}
-        handleSave={handleSaveAndCloseModal}
       />
     </div>
   );

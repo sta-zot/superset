@@ -15,9 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import sqlite3
+from contextlib import closing
 from typing import Any, Optional
 
+from flask import current_app as app
 from flask_babel import gettext as _
+from sqlalchemy.engine import Engine
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
 from superset import is_feature_enabled
@@ -31,7 +35,6 @@ from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelDatabasePortError,
     SSHTunnelingNotEnabledError,
 )
-from superset.commands.database.utils import ping
 from superset.daos.database import DatabaseDAO, SSHTunnelDAO
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
@@ -44,6 +47,7 @@ from superset.exceptions import (
 )
 from superset.extensions import event_logger
 from superset.models.core import Database
+from superset.utils import core as utils
 from superset.utils.ssh_tunnel import unmask_password_info
 
 logger = logging.getLogger(__name__)
@@ -89,9 +93,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
         self._context = context
         self._uri = uri
 
-    def run(  # noqa: C901
-        self,
-    ) -> None:  # pylint: disable=too-many-statements,too-many-branches
+    def run(self) -> None:  # pylint: disable=too-many-statements,too-many-branches  # noqa: C901
         self.validate()
         ex_str = ""
         ssh_tunnel = self._properties.get("ssh_tunnel")
@@ -134,9 +136,19 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 engine=database.db_engine_spec.__name__,
             )
 
+            def ping(engine: Engine) -> bool:
+                with closing(engine.raw_connection()) as conn:
+                    return engine.dialect.do_ping(conn)
+
             with database.get_sqla_engine(override_ssh_tunnel=ssh_tunnel) as engine:
                 try:
-                    alive = ping(engine)
+                    time_delta = app.config["TEST_DATABASE_CONNECTION_TIMEOUT"]
+                    with utils.timeout(int(time_delta.total_seconds())):
+                        alive = ping(engine)
+                except (sqlite3.ProgrammingError, RuntimeError):
+                    # SQLite can't run on a separate thread, so ``utils.timeout`` fails
+                    # RuntimeError catches the equivalent error from duckdb.
+                    alive = engine.dialect.do_ping(engine)
                 except SupersetTimeoutException as ex:
                     raise SupersetTimeoutException(
                         error_type=SupersetErrorType.CONNECTION_DATABASE_TIMEOUT,
@@ -189,10 +201,8 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 engine=database.db_engine_spec.__name__,
             )
             # check for custom errors (wrong username, wrong password, etc)
-            errors = database.db_engine_spec.extract_errors(
-                ex, self._context, database_name=database.unique_name
-            )
-            raise SupersetErrorsException(errors, status=400) from ex
+            errors = database.db_engine_spec.extract_errors(ex, self._context)
+            raise SupersetErrorsException(errors) from ex
         except OAuth2RedirectError:
             raise
         except SupersetSecurityException as ex:

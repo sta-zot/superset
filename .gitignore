@@ -21,7 +21,6 @@
 *.swp
 __pycache__
 
-.aider*
 .local
 .cache
 .bento*
@@ -43,7 +42,7 @@ _modules
 _static
 build
 app.db
-*.egg-info/
+apache_superset.egg-info/
 changelog.sh
 dist
 dump.rdb
@@ -92,7 +91,6 @@ scripts/*.zip
 # IntelliJ
 *.iml
 venv
-.venv
 @eaDir/
 
 # PyCharm
@@ -108,7 +106,6 @@ ghostdriver.log
 testCSV.csv
 .terser-plugin-cache/
 apache-superset-*.tar.gz*
-apache_superset-*.tar.gz*
 release.json
 
 # Translation-related files
@@ -127,10 +124,4 @@ docker/*local*
 # Jest test report
 test-report.html
 superset/static/stats/statistics.html
-
-# LLM-related
-CLAUDE.local.md
-PROJECT.md
 .aider*
-.claude_rc*
-.env.local

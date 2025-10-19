@@ -22,7 +22,7 @@ import prison
 from superset.utils.core import get_example_default_schema  # noqa: F401
 
 from tests.integration_tests.utils.get_dashboards import get_dashboards_ids  # noqa: F401
-from tests.conftest import with_config
+from unittest import mock
 from sqlalchemy import Column
 from typing import Any
 from superset.advanced_data_type.types import (
@@ -69,7 +69,10 @@ CHART_DATA_URI = "api/v1/chart/advanced_data_type"
 CHARTS_FIXTURE_COUNT = 10
 
 
-@with_config({"ADVANCED_DATA_TYPES": {"type": 1}})
+@mock.patch(
+    "superset.advanced_data_type.api.ADVANCED_DATA_TYPES",
+    {"type": 1},
+)
 def test_types_type_request(test_client, login_as_admin):
     """
     Advanced Data Type API: Test to see if the API call returns all the valid advanced data types
@@ -101,7 +104,10 @@ def test_types_convert_bad_request_no_type(test_client, login_as_admin):
     assert response_value.status_code == 400
 
 
-@with_config({"ADVANCED_DATA_TYPES": {"type": 1}})
+@mock.patch(
+    "superset.advanced_data_type.api.ADVANCED_DATA_TYPES",
+    {"type": 1},
+)
 def test_types_convert_bad_request_type_not_found(test_client, login_as_admin):
     """
     Advanced Data Type API: Test request to see if it behaves as expected when passed in type is
@@ -113,7 +119,10 @@ def test_types_convert_bad_request_type_not_found(test_client, login_as_admin):
     assert response_value.status_code == 400
 
 
-@with_config({"ADVANCED_DATA_TYPES": {"type": test_type}})
+@mock.patch(
+    "superset.advanced_data_type.api.ADVANCED_DATA_TYPES",
+    {"type": test_type},
+)
 def test_types_convert_request(test_client, login_as_admin):
     """
     Advanced Data Type API: Test request to see if it behaves as expected when a valid type

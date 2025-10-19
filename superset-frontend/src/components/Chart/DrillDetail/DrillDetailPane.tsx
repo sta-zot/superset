@@ -30,26 +30,23 @@ import {
   BinaryQueryObjectFilterClause,
   css,
   ensureIsArray,
+  GenericDataType,
   JsonObject,
   QueryFormData,
   t,
   useTheme,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
 import { useResizeDetector } from 'react-resize-detector';
-import BooleanCell from '@superset-ui/core/components/Table/cell-renderers/BooleanCell';
-import NullCell from '@superset-ui/core/components/Table/cell-renderers/NullCell';
-import TimeCell from '@superset-ui/core/components/Table/cell-renderers/TimeCell';
-import { EmptyState, Loading } from '@superset-ui/core/components';
+import Loading from 'src/components/Loading';
+import BooleanCell from 'src/components/Table/cell-renderers/BooleanCell';
+import NullCell from 'src/components/Table/cell-renderers/NullCell';
+import TimeCell from 'src/components/Table/cell-renderers/TimeCell';
+import { EmptyState } from 'src/components/EmptyState';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
-import Table, {
-  ColumnsType,
-  TableSize,
-} from '@superset-ui/core/components/Table';
-import { RootState } from 'src/dashboard/types';
-import HeaderWithRadioGroup from '@superset-ui/core/components/Table/header-renderers/HeaderWithRadioGroup';
+import Table, { ColumnsType, TableSize } from 'src/components/Table';
+import HeaderWithRadioGroup from 'src/components/Table/header-renderers/HeaderWithRadioGroup';
+import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
-import { Dataset } from '../types';
 import TableControls from './DrillDetailTableControls';
 import { getDrillPayload } from './utils';
 import { ResultsPage } from './types';
@@ -80,11 +77,9 @@ enum TimeFormatting {
 export default function DrillDetailPane({
   formData,
   initialFilters,
-  dataset,
 }: {
   formData: QueryFormData;
   initialFilters: BinaryQueryObjectFilterClause[];
-  dataset?: Dataset;
 }) {
   const theme = useTheme();
   const [pageIndex, setPageIndex] = useState(0);
@@ -99,10 +94,6 @@ export default function DrillDetailPane({
     Record<string, TimeFormatting>
   >({});
 
-  const dashboardId = useSelector<RootState, number>(
-    ({ dashboardInfo }) => dashboardInfo.id,
-  );
-
   const SAMPLES_ROW_LIMIT = useSelector(
     (state: { common: { conf: JsonObject } }) =>
       state.common.conf.SAMPLES_ROW_LIMIT,
@@ -114,10 +105,9 @@ export default function DrillDetailPane({
     [formData.datasource],
   );
 
-  const { metadataBar: metadataBarComponent } = useDatasetMetadataBar({
-    dataset,
+  const { metadataBar, status: metadataBarStatus } = useDatasetMetadataBar({
+    datasetId: datasourceId,
   });
-
   // Get page of results
   const resultsPage = useMemo(() => {
     const nextResultsPage = resultsPages.get(pageIndex);
@@ -137,7 +127,7 @@ export default function DrillDetailPane({
         title:
           resultsPage?.colTypes[index] === GenericDataType.Temporal ? (
             <HeaderWithRadioGroup
-              headerTitle={dataset?.verbose_map?.[column] || column}
+              headerTitle={column}
               groupTitle={t('Formatting')}
               groupOptions={[
                 { label: t('Original value'), value: TimeFormatting.Original },
@@ -159,7 +149,7 @@ export default function DrillDetailPane({
               }
             />
           ) : (
-            dataset?.verbose_map?.[column] || column
+            column
           ),
         render: value => {
           if (value === true || value === false) {
@@ -179,12 +169,7 @@ export default function DrillDetailPane({
         },
         width: 150,
       })) || [],
-    [
-      resultsPage?.colNames,
-      resultsPage?.colTypes,
-      timeFormatting,
-      dataset?.verbose_map,
-    ],
+    [resultsPage?.colNames, resultsPage?.colTypes, timeFormatting],
   );
 
   const data: DataType[] = useMemo(
@@ -244,7 +229,6 @@ export default function DrillDetailPane({
         jsonPayload,
         PAGE_SIZE,
         pageIndex + 1,
-        dashboardId,
       )
         .then(response => {
           setResultsPages(
@@ -282,7 +266,9 @@ export default function DrillDetailPane({
     resultsPages,
   ]);
 
-  const bootstrapping = !responseError && !resultsPages.size;
+  const bootstrapping =
+    (!responseError && !resultsPages.size) ||
+    metadataBarStatus === ResourceStatus.Loading;
 
   const allowHTML = formData.allow_render_html ?? true;
 
@@ -292,7 +278,7 @@ export default function DrillDetailPane({
     tableContent = (
       <pre
         css={css`
-          margin-top: ${theme.sizeUnit * 4}px;
+          margin-top: ${theme.gridUnit * 4}px;
         `}
       >
         {responseError}
@@ -330,7 +316,7 @@ export default function DrillDetailPane({
 
   return (
     <>
-      {!bootstrapping && metadataBarComponent}
+      {!bootstrapping && metadataBar}
       {!bootstrapping && (
         <TableControls
           filters={filters}

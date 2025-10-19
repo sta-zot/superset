@@ -16,19 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  Button,
-  EmptyState as EmptyStateComponent,
-} from '@superset-ui/core/components';
+import Button from 'src/components/Button';
+import { EmptyState as EmptyStateComponent } from 'src/components/EmptyState';
 import { TableTab } from 'src/views/CRUD/types';
 import { styled, t } from '@superset-ui/core';
-import { navigateTo } from 'src/utils/navigationUtils';
 import { WelcomeTable } from './types';
 
 const EmptyContainer = styled.div`
   min-height: 200px;
   display: flex;
-  color: ${({ theme }) => theme.colorTextDescription};
+  color: ${({ theme }) => theme.colors.grayscale.light2};
   flex-direction: column;
   justify-content: space-around;
 `;
@@ -37,7 +34,7 @@ const ICONS = {
   [WelcomeTable.Charts]: 'empty-charts.svg',
   [WelcomeTable.Dashboards]: 'empty-dashboard.svg',
   [WelcomeTable.Recents]: 'union.svg',
-  [WelcomeTable.SavedQueries]: 'empty.svg',
+  [WelcomeTable.SavedQueries]: 'empty-queries.svg',
 } as const;
 
 const REDIRECTS = {
@@ -59,7 +56,11 @@ export interface EmptyStateProps {
   otherTabTitle?: string;
 }
 
-export default function EmptyState({ tableName, tab }: EmptyStateProps) {
+export default function EmptyState({
+  tableName,
+  tab,
+  otherTabTitle,
+}: EmptyStateProps) {
   const getActionButton = () => {
     if (tableName === WelcomeTable.Recents) {
       return null;
@@ -81,9 +82,9 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
 
     return (
       <Button
-        buttonStyle="secondary"
+        buttonStyle="default"
         onClick={() => {
-          navigateTo(url);
+          window.location.href = url;
         }}
       >
         {isFavorite

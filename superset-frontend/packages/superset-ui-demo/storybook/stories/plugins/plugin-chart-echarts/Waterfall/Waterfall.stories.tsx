@@ -42,13 +42,7 @@ export default {
   decorators: [withResizableChartDemo],
 };
 
-export const Waterfall = ({
-  width,
-  height,
-}: {
-  width: number;
-  height: number;
-}) => (
+export const Waterfall = ({ width, height }) => (
   <SuperChart
     chartType={VizType.Waterfall}
     width={width}

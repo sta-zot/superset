@@ -59,13 +59,11 @@ jest.mock('@superset-ui/core', () => ({
   getChartBuildQueryRegistry: jest.fn(),
 }));
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('chart actions', () => {
   const MOCK_URL = '/mockURL';
   let dispatch;
   let getExploreUrlStub;
   let getChartDataUriStub;
-  let buildV1ChartDataPayloadStub;
   let waitForAsyncDataStub;
   let fakeMetadata;
 
@@ -77,7 +75,7 @@ describe('chart actions', () => {
     setupDefaultFetchMock();
   });
 
-  afterAll(() => fetchMock.restore());
+  afterAll(fetchMock.restore);
 
   beforeEach(() => {
     dispatch = sinon.spy();
@@ -87,13 +85,6 @@ describe('chart actions', () => {
     getChartDataUriStub = sinon
       .stub(exploreUtils, 'getChartDataUri')
       .callsFake(({ qs }) => URI(MOCK_URL).query(qs));
-    buildV1ChartDataPayloadStub = sinon
-      .stub(exploreUtils, 'buildV1ChartDataPayload')
-      .resolves({
-        some_param: 'fake query!',
-        result_type: 'full',
-        result_format: 'json',
-      });
     fakeMetadata = { useLegacyApi: true };
     getChartMetadataRegistry.mockImplementation(() => ({
       get: () => fakeMetadata,
@@ -113,7 +104,6 @@ describe('chart actions', () => {
   afterEach(() => {
     getExploreUrlStub.restore();
     getChartDataUriStub.restore();
-    buildV1ChartDataPayloadStub.restore();
     fetchMock.resetHistory();
     waitForAsyncDataStub.restore();
 
@@ -122,13 +112,12 @@ describe('chart actions', () => {
     };
   });
 
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('v1 API', () => {
     beforeEach(() => {
       fakeMetadata = { viz_type: 'my_viz', useLegacyApi: false };
     });
 
-    test('should query with the built query', async () => {
+    it('should query with the built query', async () => {
       const actionThunk = actions.postChartFormData({}, null);
       await actionThunk(dispatch, mockGetState);
 
@@ -143,7 +132,7 @@ describe('chart actions', () => {
       expect(dispatch.args[0][0].type).toBe(actions.CHART_UPDATE_STARTED);
     });
 
-    test('should handle the bigint without regression', async () => {
+    it('should handle the bigint without regression', async () => {
       getChartDataUriStub.restore();
       const mockBigIntUrl = '/mock/chart/data/bigint';
       const expectedBigNumber = '9223372036854775807';
@@ -162,7 +151,7 @@ describe('chart actions', () => {
       expect(json.value.toString()).toEqual(expectedBigNumber);
     });
 
-    test('handleChartDataResponse should return result if GlobalAsyncQueries flag is disabled', async () => {
+    it('handleChartDataResponse should return result if GlobalAsyncQueries flag is disabled', async () => {
       const result = await handleChartDataResponse(
         { status: 200 },
         { result: [1, 2, 3] },
@@ -170,7 +159,7 @@ describe('chart actions', () => {
       expect(result).toEqual([1, 2, 3]);
     });
 
-    test('handleChartDataResponse should handle responses when GlobalAsyncQueries flag is enabled and results are returned synchronously', async () => {
+    it('handleChartDataResponse should handle responses when GlobalAsyncQueries flag is enabled and results are returned synchronously', async () => {
       global.featureFlags = {
         [FeatureFlag.GlobalAsyncQueries]: true,
       };
@@ -181,7 +170,7 @@ describe('chart actions', () => {
       expect(result).toEqual([1, 2, 3]);
     });
 
-    test('handleChartDataResponse should handle responses when GlobalAsyncQueries flag is enabled and query is running asynchronously', async () => {
+    it('handleChartDataResponse should handle responses when GlobalAsyncQueries flag is enabled and query is running asynchronously', async () => {
       global.featureFlags = {
         [FeatureFlag.GlobalAsyncQueries]: true,
       };
@@ -193,13 +182,12 @@ describe('chart actions', () => {
     });
   });
 
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('legacy API', () => {
     beforeEach(() => {
       fakeMetadata = { useLegacyApi: true };
     });
 
-    test('should dispatch CHART_UPDATE_STARTED action before the query', () => {
+    it('should dispatch CHART_UPDATE_STARTED action before the query', () => {
       const actionThunk = actions.postChartFormData({});
 
       return actionThunk(dispatch, mockGetState).then(() => {
@@ -210,7 +198,7 @@ describe('chart actions', () => {
       });
     });
 
-    test('should dispatch TRIGGER_QUERY action with the query', () => {
+    it('should dispatch TRIGGER_QUERY action with the query', () => {
       const actionThunk = actions.postChartFormData({});
       return actionThunk(dispatch, mockGetState).then(() => {
         // chart update, trigger query, update form data, success
@@ -220,7 +208,7 @@ describe('chart actions', () => {
       });
     });
 
-    test('should dispatch UPDATE_QUERY_FORM_DATA action with the query', () => {
+    it('should dispatch UPDATE_QUERY_FORM_DATA action with the query', () => {
       const actionThunk = actions.postChartFormData({});
       return actionThunk(dispatch, mockGetState).then(() => {
         // chart update, trigger query, update form data, success
@@ -230,7 +218,7 @@ describe('chart actions', () => {
       });
     });
 
-    test('should dispatch logEvent async action', () => {
+    it('should dispatch logEvent async action', () => {
       const actionThunk = actions.postChartFormData({});
       return actionThunk(dispatch, mockGetState).then(() => {
         // chart update, trigger query, update form data, success
@@ -244,7 +232,7 @@ describe('chart actions', () => {
       });
     });
 
-    test('should dispatch CHART_UPDATE_SUCCEEDED action upon success', () => {
+    it('should dispatch CHART_UPDATE_SUCCEEDED action upon success', () => {
       const actionThunk = actions.postChartFormData({});
       return actionThunk(dispatch, mockGetState).then(() => {
         // chart update, trigger query, update form data, success
@@ -254,7 +242,7 @@ describe('chart actions', () => {
       });
     });
 
-    test('should dispatch CHART_UPDATE_FAILED action upon query timeout', () => {
+    it('should dispatch CHART_UPDATE_FAILED action upon query timeout', () => {
       const unresolvingPromise = new Promise(() => {});
       fetchMock.post(MOCK_URL, () => unresolvingPromise, {
         overwriteRoutes: true,
@@ -272,7 +260,7 @@ describe('chart actions', () => {
       });
     });
 
-    test('should dispatch CHART_UPDATE_FAILED action upon non-timeout non-abort failure', () => {
+    it('should dispatch CHART_UPDATE_FAILED action upon non-timeout non-abort failure', () => {
       fetchMock.post(
         MOCK_URL,
         { throws: { statusText: 'misc error' } },
@@ -293,7 +281,7 @@ describe('chart actions', () => {
       });
     });
 
-    test('should handle the bigint without regression', async () => {
+    it('should handle the bigint without regression', async () => {
       getExploreUrlStub.restore();
       const mockBigIntUrl = '/mock/chart/data/bigint';
       const expectedBigNumber = '9223372036854775807';
@@ -313,14 +301,13 @@ describe('chart actions', () => {
     });
   });
 
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('runAnnotationQuery', () => {
     const mockDispatch = jest.fn();
     beforeEach(() => {
       jest.clearAllMocks();
     });
 
-    test('should dispatch annotationQueryStarted and annotationQuerySuccess on successful query', async () => {
+    it('should dispatch annotationQueryStarted and annotationQuerySuccess on successful query', async () => {
       const annotation = {
         name: 'Holidays',
         annotationType: 'EVENT',
@@ -370,13 +357,12 @@ describe('chart actions', () => {
   });
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('chart actions timeout', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  test('should use the timeout from arguments when given', async () => {
+  it('should use the timeout from arguments when given', () => {
     const postSpy = jest.spyOn(SupersetClient, 'post');
     postSpy.mockImplementation(() => Promise.resolve({ json: { result: [] } }));
     const timeout = 10; // Set the timeout value here
@@ -384,7 +370,7 @@ describe('chart actions timeout', () => {
     const key = 'chartKey'; // Set the chart key here
 
     const store = mockStore(initialState);
-    await store.dispatch(
+    store.dispatch(
       actions.runAnnotationQuery({
         annotation: {
           value: 'annotationValue',
@@ -408,14 +394,14 @@ describe('chart actions timeout', () => {
     expect(postSpy).toHaveBeenCalledWith(expectedPayload);
   });
 
-  test('should use the timeout from common.conf when not passed as an argument', async () => {
+  it('should use the timeout from common.conf when not passed as an argument', () => {
     const postSpy = jest.spyOn(SupersetClient, 'post');
     postSpy.mockImplementation(() => Promise.resolve({ json: { result: [] } }));
     const formData = { datasource: 'table__1' }; // Set the formData here
     const key = 'chartKey'; // Set the chart key here
 
     const store = mockStore(initialState);
-    await store.dispatch(
+    store.dispatch(
       actions.runAnnotationQuery({
         annotation: {
           value: 'annotationValue',

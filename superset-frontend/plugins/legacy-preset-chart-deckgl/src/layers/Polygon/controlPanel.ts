@@ -22,7 +22,7 @@ import {
 } from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
 import timeGrainSqlaAnimationOverrides from '../../utilities/controls';
-import { COLOR_SCHEME_TYPES, formatSelectOptions } from '../../utilities/utils';
+import { formatSelectOptions } from '../../utilities/utils';
 import {
   filterNulls,
   autozoom,
@@ -44,12 +44,6 @@ import {
   lineType,
   reverseLongLat,
   mapboxStyle,
-  deckGLCategoricalColorSchemeTypeSelect,
-  deckGLLinearColorSchemeSelect,
-  deckGLColorBreakpointsSelect,
-  breakpointsDefaultColor,
-  tooltipContents,
-  tooltipTemplate,
 } from '../../utilities/Shared_DeckGL';
 import { dndLineColumn } from '../../utilities/sharedDndControls';
 
@@ -91,8 +85,6 @@ const config: ControlPanelConfig = {
         ['row_limit'],
         [reverseLongLat],
         [filterNulls],
-        [tooltipContents],
-        [tooltipTemplate],
       ],
     },
     {
@@ -104,25 +96,7 @@ const config: ControlPanelConfig = {
       label: t('Polygon Settings'),
       expanded: true,
       controlSetRows: [
-        [
-          {
-            ...deckGLCategoricalColorSchemeTypeSelect,
-            config: {
-              ...deckGLCategoricalColorSchemeTypeSelect.config,
-              choices: [
-                [COLOR_SCHEME_TYPES.fixed_color, t('Fixed color')],
-                [COLOR_SCHEME_TYPES.linear_palette, t('Linear palette')],
-                [COLOR_SCHEME_TYPES.color_breakpoints, t('Color breakpoints')],
-              ],
-              default: COLOR_SCHEME_TYPES.linear_palette,
-            },
-          },
-          fillColorPicker,
-          strokeColorPicker,
-          deckGLLinearColorSchemeSelect,
-          breakpointsDefaultColor,
-          deckGLColorBreakpointsSelect,
-        ],
+        [fillColorPicker, strokeColorPicker],
         [filled, stroked],
         [extruded],
         [multiplier],
@@ -142,6 +116,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['linear_color_scheme'],
         [
           {
             name: 'opacity',
@@ -185,6 +160,32 @@ const config: ControlPanelConfig = {
                 'List of n+1 values for bucketing metric into n buckets.',
               ),
               renderTrigger: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'table_filter',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Emit Filter Events'),
+              renderTrigger: true,
+              default: false,
+              description: t('Whether to apply filter when items are clicked'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'toggle_polygons',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Multiple filtering'),
+              renderTrigger: true,
+              default: true,
+              description: t(
+                'Allow sending multiple polygons as a filter event',
+              ),
             },
           },
         ],

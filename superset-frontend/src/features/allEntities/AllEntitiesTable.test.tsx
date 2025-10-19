@@ -17,11 +17,11 @@
  * under the License.
  */
 
-import { render, screen } from 'spec/helpers/testing-library';
+import { render } from 'spec/helpers/testing-library';
+import { screen } from '@testing-library/react';
 import * as useQueryParamsModule from 'use-query-params';
 import AllEntitiesTable from './AllEntitiesTable';
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AllEntitiesTable', () => {
   const mockSetShowTagModal = jest.fn();
 
@@ -92,7 +92,7 @@ describe('AllEntitiesTable', () => {
     jest.restoreAllMocks();
   });
 
-  test('renders when empty with button to tag if user has perm', () => {
+  it('renders when empty with button to tag if user has perm', () => {
     render(
       <AllEntitiesTable
         search=""
@@ -100,7 +100,6 @@ describe('AllEntitiesTable', () => {
         objects={mockObjects}
         canEditTag
       />,
-      { useRouter: true },
     );
 
     expect(
@@ -110,7 +109,7 @@ describe('AllEntitiesTable', () => {
     expect(screen.getByText('Add tag to entities')).toBeInTheDocument();
   });
 
-  test('renders when empty without button to tag if user does not have perm', () => {
+  it('renders when empty without button to tag if user does not have perm', () => {
     render(
       <AllEntitiesTable
         search=""
@@ -128,7 +127,7 @@ describe('AllEntitiesTable', () => {
     expect(screen.queryByText('Add tag to entities')).not.toBeInTheDocument();
   });
 
-  test('renders the correct tags for each object type', () => {
+  it('renders the correct tags for each object type, excluding the current tag', () => {
     render(
       <AllEntitiesTable
         search=""
@@ -136,7 +135,6 @@ describe('AllEntitiesTable', () => {
         objects={mockObjectsWithTags}
         canEditTag
       />,
-      { useRouter: true },
     );
 
     expect(screen.getByText('Dashboards')).toBeInTheDocument();
@@ -150,9 +148,11 @@ describe('AllEntitiesTable', () => {
     expect(screen.getByText('Queries')).toBeInTheDocument();
     expect(screen.getByText('User Engagement')).toBeInTheDocument();
     expect(screen.getByText('Engagement')).toBeInTheDocument();
+
+    expect(screen.queryByText('Current Tag')).not.toBeInTheDocument();
   });
 
-  test('Only list asset types that have entities', () => {
+  it('Only list asset types that have entities', () => {
     const mockObjects = {
       dashboard: [],
       chart: [mockObjectsWithTags.chart[0]],

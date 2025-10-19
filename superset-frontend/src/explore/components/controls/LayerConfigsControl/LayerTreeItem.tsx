@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Icons } from '@superset-ui/core/components/Icons';
-import { Button } from '@superset-ui/core/components';
-import { Tag } from 'src/components';
+import { CloseOutlined, RightOutlined } from '@ant-design/icons';
+import { Button, Tag } from 'antd';
 import { FC } from 'react';
 import { LayerTreeItemProps } from './types';
 
@@ -40,7 +39,7 @@ export const LayerTreeItem: FC<LayerTreeItemProps> = ({
     <Tag className={className}>
       <Button
         className="layer-tree-item-close"
-        icon={<Icons.CloseOutlined iconSize="m" />}
+        icon={<CloseOutlined />}
         onClick={onCloseTag}
         size="small"
       />
@@ -62,7 +61,7 @@ export const LayerTreeItem: FC<LayerTreeItemProps> = ({
       </span>
       <Button
         className="layer-tree-item-edit"
-        icon={<Icons.RightOutlined />}
+        icon={<RightOutlined />}
         onClick={onEditTag}
         size="small"
       />

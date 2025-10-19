@@ -41,8 +41,6 @@ import {
   JsonValue,
   NO_TIME_RANGE,
   usePrevious,
-  isFeatureEnabled,
-  FeatureFlag,
 } from '@superset-ui/core';
 import {
   ControlPanelSectionConfig,
@@ -55,22 +53,20 @@ import {
   sections,
 } from '@superset-ui/chart-controls';
 import { useSelector } from 'react-redux';
+import { rgba } from 'emotion-rgba';
 import { kebabCase, isEqual } from 'lodash';
 
-import {
-  Collapse,
-  Modal,
-  Loading,
-  Label,
-  Tooltip,
-} from '@superset-ui/core/components';
-import Tabs from '@superset-ui/core/components/Tabs';
-import { PluginContext } from 'src/components';
+import Collapse from 'src/components/Collapse';
+import Tabs from 'src/components/Tabs';
+import { PluginContext } from 'src/components/DynamicPlugins';
+import Loading from 'src/components/Loading';
+import Modal from 'src/components/Modal';
 
 import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ChartState, ExplorePageState } from 'src/explore/types';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { Tooltip } from 'src/components/Tooltip';
+import Icons from 'src/components/Icons';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
@@ -81,12 +77,6 @@ import StashFormDataContainer from './StashFormDataContainer';
 
 const { confirm } = Modal;
 
-const TABS_KEYS = {
-  DATA: 'DATA',
-  CUSTOMIZE: 'CUSTOMIZE',
-  MATRIXIFY: 'MATRIXIFY',
-};
-
 export type ControlPanelsContainerProps = {
   exploreState: ExplorePageState['explore'];
   actions: ExploreActions;
@@ -96,7 +86,6 @@ export type ControlPanelsContainerProps = {
   form_data: QueryFormData;
   isDatasourceMetaLoading: boolean;
   errorMessage: ReactNode;
-  buttonErrorMessage?: ReactNode; // Error message for RunQueryButton (includes all errors)
   onQuery: () => void;
   onStop: () => void;
   canStopQuery: boolean;
@@ -122,11 +111,16 @@ const iconStyles = css`
 
 const actionButtonsContainerStyles = (theme: SupersetTheme) => css`
   display: flex;
+  position: sticky;
+  bottom: 0;
   flex-direction: column;
   align-items: center;
-  padding: ${theme.sizeUnit * 4}px;
-  background: ${theme.colorBgContainer};
-  flex-shrink: 0;
+  padding: ${theme.gridUnit * 4}px;
+  z-index: 999;
+  background: linear-gradient(
+    ${rgba(theme.colors.grayscale.light5, 0)},
+    ${theme.colors.grayscale.light5} ${theme.opacity.mediumLight}
+  );
 
   & > button {
     min-width: 156px;
@@ -137,58 +131,65 @@ const Styles = styled.div`
   position: relative;
   height: 100%;
   width: 100%;
-  display: flex;
-  flex-direction: column;
 
   // Resizable add overflow-y: auto as a style to this div
   // To override it, we need to use !important
   overflow: visible !important;
-
   #controlSections {
-    flex: 1;
-    overflow: auto;
-  }
-
-  .tab-content {
+    height: 100%;
     overflow: visible;
+  }
+  .nav-tabs {
+    flex: 0 0 1;
+  }
+  .tab-content {
+    overflow: auto;
     flex: 1 1 100%;
   }
-
-  // Ensure Ant Design tabs allow content to expand
-  .ant-tabs-content {
-    overflow: visible;
-    height: auto;
-  }
-
-  .ant-tabs-content-holder {
-    overflow: visible;
-    height: auto;
-  }
-
-  .ant-tabs-tabpane {
-    overflow: visible;
-    height: auto;
-  }
-
-  // Ensure collapse components can expand
-  .ant-collapse-content {
-    overflow: visible;
-  }
-
-  .ant-collapse-content-box {
-    overflow: visible;
-  }
-
   .Select__menu {
     max-width: 100%;
   }
   .type-label {
-    margin-right: ${({ theme }) => theme.sizeUnit * 3}px;
-    width: ${({ theme }) => theme.sizeUnit * 7}px;
+    margin-right: ${({ theme }) => theme.gridUnit * 3}px;
+    width: ${({ theme }) => theme.gridUnit * 7}px;
     display: inline-block;
     text-align: center;
-    font-weight: ${({ theme }) => theme.fontWeightStrong};
+    font-weight: ${({ theme }) => theme.typography.weights.bold};
   }
+`;
+
+const ControlPanelsTabs = styled(Tabs)`
+  ${({ theme, fullWidth }) => css`
+    height: 100%;
+    overflow: visible;
+    .ant-tabs-nav {
+      margin-bottom: 0;
+    }
+    .ant-tabs-nav-list {
+      width: ${fullWidth ? '100%' : '50%'};
+    }
+    .ant-tabs-tabpane {
+      height: 100%;
+    }
+    .ant-tabs-content-holder {
+      padding-top: ${theme.gridUnit * 4}px;
+    }
+
+    .ant-collapse-ghost > .ant-collapse-item {
+      &:not(:last-child) {
+        border-bottom: 1px solid ${theme.colors.grayscale.light3};
+      }
+
+      & > .ant-collapse-header {
+        font-size: ${theme.typography.sizes.s}px;
+      }
+
+      & > .ant-collapse-content > .ant-collapse-content-box {
+        padding-bottom: 0;
+        font-size: ${theme.typography.sizes.s}px;
+      }
+    }
+  `}
 `;
 
 const isTimeSection = (section: ControlPanelSectionConfig): boolean =>
@@ -217,19 +218,11 @@ function getState(
 ) {
   const querySections: ControlPanelSectionConfig[] = [];
   const customizeSections: ControlPanelSectionConfig[] = [];
-  const matrixifySections: ControlPanelSectionConfig[] = [];
-  let matrixifyEnableControl: ControlPanelSectionConfig | null = null;
 
   getSectionsToRender(vizType, datasourceType).forEach(section => {
-    if (!section) return;
-    if (section.tabOverride === 'matrixify') {
-      // Separate the enable control from other sections
-      if (section.label === t('Enable Matrixify')) {
-        matrixifyEnableControl = section;
-      } else {
-        matrixifySections.push(section);
-      }
-    } else if (
+    // if at least one control in the section is not `renderTrigger`
+    // or asks to be displayed at the Data tab
+    if (
       section.tabOverride === 'data' ||
       section.controlSetRows.some(rows =>
         rows.some(
@@ -244,11 +237,10 @@ function getState(
       )
     ) {
       querySections.push(section);
-    } else if (section.controlSetRows && section.controlSetRows.length > 0) {
+    } else if (section.controlSetRows.length > 0) {
       customizeSections.push(section);
     }
   });
-
   const expandedQuerySections: string[] = sectionsToExpand(
     querySections,
     datasource,
@@ -257,19 +249,11 @@ function getState(
     customizeSections,
     datasource,
   );
-  const expandedMatrixifySections: string[] = sectionsToExpand(
-    matrixifySections,
-    datasource,
-  );
-
   return {
     expandedQuerySections,
     expandedCustomizeSections,
-    expandedMatrixifySections,
     querySections,
     customizeSections,
-    matrixifySections,
-    matrixifyEnableControl,
   };
 }
 
@@ -285,7 +269,7 @@ function useResetOnChangeRef(initialValue: () => any, resetOnChangeValue: any) {
 }
 
 export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
-  const theme = useTheme();
+  const { colors } = useTheme();
   const pluginContext = useContext(PluginContext);
 
   const prevState = usePrevious(props.exploreState);
@@ -417,11 +401,8 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const {
     expandedQuerySections,
     expandedCustomizeSections,
-    expandedMatrixifySections,
     querySections,
     customizeSections,
-    matrixifySections,
-    matrixifyEnableControl,
   } = useMemo(
     () =>
       getState(
@@ -605,12 +586,17 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       sectionHasHadNoErrors.current[sectionId] = true;
     }
 
+    const errorColor = sectionHasHadNoErrors.current[sectionId]
+      ? colors.error.base
+      : colors.warning.base;
+
     const PanelHeader = () => (
       <span data-test="collapsible-control-panel-header">
         <span
           css={(theme: SupersetTheme) => css`
-            font-size: ${theme.fontSize}px;
+            font-size: ${theme.typography.sizes.m}px;
             line-height: 1.3;
+            font-weight: ${theme.typography.weights.medium};
           `}
         >
           {label}
@@ -625,13 +611,18 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             id={`${kebabCase('validation-errors')}-tooltip`}
             title={t('This section contains validation errors')}
           >
-            <Icons.InfoCircleOutlined iconColor={theme.colorErrorText} />
+            <Icons.InfoCircleOutlined
+              css={css`
+                ${iconStyles};
+                color: ${errorColor};
+              `}
+            />
           </Tooltip>
         )}
       </span>
     );
 
-    const PanelChildren = (
+    return (
       <>
         <StashFormDataContainer
           key={`sectionId-${sectionId}`}
@@ -648,7 +639,34 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             .filter(Boolean)}
         />
         {isVisible && (
-          <>
+          <Collapse.Panel
+            css={theme => css`
+              margin-bottom: 0;
+              box-shadow: none;
+
+              &:last-child {
+                padding-bottom: ${theme.gridUnit * 16}px;
+                border-bottom: 0;
+              }
+
+              .panel-body {
+                margin-left: ${theme.gridUnit * 4}px;
+                padding-bottom: 0;
+              }
+
+              span.label {
+                display: inline-block;
+              }
+              ${!section.label &&
+              `
+          .ant-collapse-header {
+            display: none;
+          }
+        `}
+            `}
+            header={<PanelHeader />}
+            key={sectionId}
+          >
             {section.controlSetRows.map((controlSets, i) => {
               const renderedControls = controlSets
                 .map(controlItem => {
@@ -680,18 +698,10 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                 />
               );
             })}
-          </>
+          </Collapse.Panel>
         )}
       </>
     );
-
-    return {
-      key: String(section.label),
-      label: <PanelHeader />,
-      children: PanelChildren,
-      className: section.label ? '' : 'hidden-collapse-header',
-      style: { visibility: isVisible ? 'visible' : 'hidden' },
-    };
   };
 
   const hasControlsTransferred =
@@ -735,13 +745,17 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       dataTabHasHadNoErrors.current = true;
     }
 
+    const errorColor = dataTabHasHadNoErrors.current
+      ? colors.error.base
+      : colors.warning.base;
+
     return (
       <>
         <span>{t('Data')}</span>
         {props.errorMessage && (
           <span
             css={(theme: SupersetTheme) => css`
-              margin-left: ${theme.sizeUnit * 2}px;
+              margin-left: ${theme.gridUnit * 2}px;
             `}
           >
             {' '}
@@ -750,10 +764,11 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               placement="right"
               title={props.errorMessage}
             >
-              <Icons.InfoCircleOutlined
-                data-test="query-error-tooltip-trigger"
-                iconColor={theme.colorErrorText}
-                iconSize="s"
+              <Icons.ExclamationCircleOutlined
+                css={css`
+                  ${iconStyles};
+                  color: ${errorColor};
+                `}
               />
             </Tooltip>
           </span>
@@ -761,193 +776,54 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       </>
     );
   }, [
-    theme.colorErrorText,
-    theme.colorWarningText,
+    colors.error.base,
+    colors.warning.base,
     dataTabHasHadNoErrors,
     props.errorMessage,
   ]);
-
-  const showCustomizeTab = customizeSections.length > 0;
-  const showMatrixifyTab = isFeatureEnabled(FeatureFlag.Matrixify);
-
-  // Check if matrixify sections have validation errors
-  const matrixifyHasErrors = useMemo(() => {
-    if (!showMatrixifyTab) return false;
-
-    return matrixifySections.some(section =>
-      section.controlSetRows.some(rows =>
-        rows.some(item => {
-          const controlName =
-            typeof item === 'string'
-              ? item
-              : item && 'name' in item
-                ? item.name
-                : null;
-          return (
-            controlName &&
-            controlName in props.controls &&
-            props.controls[controlName].validationErrors &&
-            props.controls[controlName].validationErrors.length > 0
-          );
-        }),
-      ),
-    );
-  }, [showMatrixifyTab, matrixifySections, props.controls]);
-
-  // Create Matrixify tab label with Beta tag and validation errors
-  const matrixifyTabLabel = useMemo(
-    () => (
-      <>
-        <span>{t('Matrixify')}</span>
-        {matrixifyHasErrors && (
-          <span
-            css={(theme: SupersetTheme) => css`
-              margin-left: ${theme.sizeUnit * 2}px;
-            `}
-          >
-            {' '}
-            <Tooltip
-              id="matrixify-validation-error-tooltip"
-              placement="right"
-              title={t('This section contains validation errors')}
-            >
-              <Icons.InfoCircleOutlined
-                data-test="matrixify-validation-error-tooltip-trigger"
-                iconColor={theme.colorErrorText}
-                iconSize="s"
-              />
-            </Tooltip>
-          </span>
-        )}{' '}
-        <Tooltip
-          title={t(
-            'This feature is experimental and may change or have limitations',
-          )}
-          placement="top"
-        >
-          <Label
-            type="info"
-            css={css`
-              margin-left: ${theme.sizeUnit}px;
-              font-size: ${theme.fontSizeSM}px;
-            `}
-          >
-            {t('beta')}
-          </Label>
-        </Tooltip>
-      </>
-    ),
-    [
-      matrixifyHasErrors,
-      theme.colorErrorText,
-      theme.sizeUnit,
-      theme.fontSizeSM,
-    ],
-  );
 
   const controlPanelRegistry = getChartControlPanelRegistry();
   if (!controlPanelRegistry.has(form_data.viz_type) && pluginContext.loading) {
     return <Loading />;
   }
 
+  const showCustomizeTab = customizeSections.length > 0;
+
   return (
     <Styles ref={containerRef}>
-      <Tabs
+      <ControlPanelsTabs
         id="controlSections"
         data-test="control-tabs"
+        fullWidth={showCustomizeTab}
         allowOverflow={false}
-        items={[
-          {
-            key: TABS_KEYS.DATA,
-            label: dataTabTitle,
-            children: (
-              <>
-                {showDatasourceAlert && <DatasourceAlert />}
-                <Collapse
-                  defaultActiveKey={expandedQuerySections}
-                  expandIconPosition="end"
-                  ghost
-                  bordered
-                  items={[...querySections.map(renderControlPanelSection)]}
-                />
-              </>
-            ),
-          },
-          ...(showCustomizeTab
-            ? [
-                {
-                  key: TABS_KEYS.CUSTOMIZE,
-                  label: t('Customize'),
-                  children: (
-                    <Collapse
-                      defaultActiveKey={expandedCustomizeSections}
-                      expandIconPosition="end"
-                      ghost
-                      bordered
-                      items={[
-                        ...customizeSections.map(renderControlPanelSection),
-                      ]}
-                    />
-                  ),
-                },
-              ]
-            : []),
-          ...(showMatrixifyTab
-            ? [
-                {
-                  key: TABS_KEYS.MATRIXIFY,
-                  label: matrixifyTabLabel,
-                  children: (
-                    <>
-                      {/* Render Enable Matrixify control outside collapsible sections */}
-                      {matrixifyEnableControl &&
-                        (
-                          matrixifyEnableControl as ControlPanelSectionConfig
-                        ).controlSetRows.map(
-                          (controlSetRow: CustomControlItem[], i: number) => (
-                            <div
-                              key={`matrixify-enable-${i}`}
-                              css={css`
-                                padding: ${theme.sizeUnit * 4}px;
-                                border-bottom: 1px solid ${theme.colorBorder};
-                              `}
-                            >
-                              {controlSetRow.map(
-                                (control: CustomControlItem, j: number) => {
-                                  if (!control || typeof control === 'string') {
-                                    return null;
-                                  }
-                                  return (
-                                    <div key={`control-${i}-${j}`}>
-                                      {renderControl(control)}
-                                    </div>
-                                  );
-                                },
-                              )}
-                            </div>
-                          ),
-                        )}
-                      <Collapse
-                        defaultActiveKey={expandedMatrixifySections}
-                        expandIconPosition="right"
-                        ghost
-                        bordered
-                        items={[
-                          ...matrixifySections.map(renderControlPanelSection),
-                        ]}
-                      />
-                    </>
-                  ),
-                },
-              ]
-            : []),
-        ]}
-      />
+      >
+        <Tabs.TabPane key="query" tab={dataTabTitle}>
+          <Collapse
+            defaultActiveKey={expandedQuerySections}
+            expandIconPosition="right"
+            ghost
+          >
+            {showDatasourceAlert && <DatasourceAlert />}
+            {querySections.map(renderControlPanelSection)}
+          </Collapse>
+        </Tabs.TabPane>
+        {showCustomizeTab && (
+          <Tabs.TabPane key="display" tab={t('Customize')}>
+            <Collapse
+              defaultActiveKey={expandedCustomizeSections}
+              expandIconPosition="right"
+              ghost
+            >
+              {customizeSections.map(renderControlPanelSection)}
+            </Collapse>
+          </Tabs.TabPane>
+        )}
+      </ControlPanelsTabs>
       <div css={actionButtonsContainerStyles}>
         <RunQueryButton
           onQuery={props.onQuery}
           onStop={props.onStop}
-          errorMessage={props.buttonErrorMessage || props.errorMessage}
+          errorMessage={props.errorMessage}
           loading={props.chart.chartStatus === 'loading'}
           isNewChart={!props.chart.queriesResponse}
           canStopQuery={props.canStopQuery}

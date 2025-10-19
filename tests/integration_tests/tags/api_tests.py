@@ -14,32 +14,33 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 """Unit tests for Superset"""
 
+import prison
 from datetime import datetime
+
+from flask import g  # noqa: F401
+import pytest
+import prison  # noqa: F811
+from freezegun import freeze_time
+from sqlalchemy.sql import func
+from sqlalchemy import and_  # noqa: F401
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
+from superset.models.sql_lab import SavedQuery  # noqa: F401
+from superset.tags.models import user_favorite_tag_table  # noqa: F401
 from unittest.mock import patch
 from urllib import parse
 
-import prison
-import pytest
-from freezegun import freeze_time
-from sqlalchemy import and_
-from sqlalchemy.sql import func
 
-from superset import db
-from superset.connectors.sqla.models import SqlaTable
-from superset.daos.tag import TagDAO
-from superset.models.dashboard import Dashboard
-from superset.models.slice import Slice
-from superset.tags.models import (
-    ObjectType,
-    Tag,
-    TaggedObject,
-    TagType,
-    user_favorite_tag_table,
-)
+import tests.integration_tests.test_app  # noqa: F401
+from superset import db, security_manager  # noqa: F401
+from superset.common.db_query_status import QueryStatus  # noqa: F401
+from superset.models.core import Database  # noqa: F401
+from superset.utils.database import get_example_database, get_main_database  # noqa: F401
 from superset.utils import json
-from tests.integration_tests.base_tests import SupersetTestCase
+from superset.tags.models import ObjectType, Tag, TagType, TaggedObject
 from tests.integration_tests.constants import ADMIN_USERNAME, ALPHA_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
@@ -49,7 +50,10 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,  # noqa: F401
     load_world_bank_data,  # noqa: F401
 )
-from tests.integration_tests.insert_chart_mixin import InsertChartMixin
+from tests.integration_tests.fixtures.tags import with_tagging_system_feature  # noqa: F401
+from tests.integration_tests.base_tests import SupersetTestCase
+from superset.daos.tag import TagDAO
+from superset.tags.models import ObjectType  # noqa: F811
 
 TAGS_FIXTURE_COUNT = 10
 
@@ -67,7 +71,7 @@ TAGS_LIST_COLUMNS = [
 ]
 
 
-class TestTagApi(InsertChartMixin, SupersetTestCase):
+class TestTagApi(SupersetTestCase):
     def insert_tag(
         self,
         name: str,
@@ -355,7 +359,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
             TaggedObject.object_type == dashboard_type.name,
         )
         assert tagged_objects.count() == 2
-        uri = f"api/v1/tag/get_objects/?tags={','.join(tag_names)}"
+        uri = f'api/v1/tag/get_objects/?tags={",".join(tag_names)}'
         rv = self.client.get(uri)
         # successful request
         assert rv.status_code == 200
@@ -402,96 +406,6 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         # clean up tagged object
         tagged_objects.delete()
 
-    def test_get_tagged_objects_restricted(self):
-        """
-        Test that the get_objects endpoint returns only assets
-        the user has access to.
-        """
-        owner = self.get_user(ADMIN_USERNAME)
-
-        # Create a tag
-        tag = self.insert_tag(
-            name="test_tagged_objects_visibility",
-            tag_type="custom",
-        )
-
-        # Create a chart
-        chart_first_dataset = self.insert_chart("first_chart", [owner.id], 1)
-        first_tag_relation = self.insert_tagged_object(
-            tag_id=tag.id,
-            object_id=chart_first_dataset.id,
-            object_type=ObjectType.chart,
-        )
-
-        # Create another chart and add it to a dashboard
-        chart_second_dataset = self.insert_chart("second_chart", [owner.id], 2)
-        second_tag_relation = self.insert_tagged_object(
-            tag_id=tag.id,
-            object_id=chart_second_dataset.id,
-            object_type=ObjectType.chart,
-        )
-        dashboard = self.insert_dashboard(
-            "test_dashboard",
-            "test_dashboard",
-            [owner.id],
-            slices=[chart_second_dataset],
-            published=True,
-        )
-        dashboard_tag_relation = self.insert_tagged_object(
-            tag_id=tag.id,
-            object_id=dashboard.id,
-            object_type=ObjectType.dashboard,
-        )
-
-        # Create a user without access to these items
-        user = self.create_user_with_roles(
-            "test_restricted_user",
-            ["testing_new_role"],
-            should_create_roles=True,
-        )
-        self.login("test_restricted_user")
-
-        uri = f"api/v1/tag/get_objects/?tagIds={tag.id}"
-        rv = self.client.get(uri)
-        assert rv.status_code == 200
-        assert rv.json["result"] == []
-
-        # grant access to dataset ID 1
-        first_dataset = db.session.query(SqlaTable).filter(SqlaTable.id == 1).first()
-        self.grant_role_access_to_table(first_dataset, "testing_new_role")
-
-        rv = self.client.get(uri)
-        assert rv.status_code == 200
-        result = rv.json["result"]
-        assert len(result) == 1
-        assert result[0]["id"] == chart_first_dataset.id
-
-        # grant access to dataset ID 2
-        second_dataset = db.session.query(SqlaTable).filter(SqlaTable.id == 2).first()
-        self.grant_role_access_to_table(second_dataset, "testing_new_role")
-
-        rv = self.client.get(uri)
-        assert rv.status_code == 200
-        result = rv.json["result"]
-        assert len(result) == 3
-        assert sorted([res["id"] for res in result]) == sorted(
-            [chart_first_dataset.id, chart_second_dataset.id, dashboard.id]
-        )
-
-        # Clean up
-        db.session.delete(dashboard_tag_relation)
-        db.session.delete(dashboard)
-        db.session.delete(second_tag_relation)
-        db.session.delete(chart_second_dataset)
-        db.session.delete(first_tag_relation)
-        db.session.delete(chart_first_dataset)
-        db.session.delete(tag)
-        self.revoke_role_access_to_table("testing_new_role", first_dataset)
-        self.revoke_role_access_to_table("testing_new_role", second_dataset)
-        db.session.delete(user.roles[0])
-        db.session.delete(user)
-        db.session.commit()
-
     # test delete tags
     @pytest.mark.usefixtures("create_tags")
     def test_delete_tags(self):
@@ -529,6 +443,9 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         rv = self.client.post(uri, follow_redirects=True)
 
         assert rv.status_code == 200
+        from sqlalchemy import and_  # noqa: F811
+        from superset.tags.models import user_favorite_tag_table  # noqa: F811
+        from flask import g  # noqa: F401, F811
 
         association_row = (
             db.session.query(user_favorite_tag_table)
@@ -713,10 +630,10 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
 
         assert rv.status_code == 200
 
-        result = TagDAO.get_tagged_objects_by_tag_names(tags, ["dashboard"])
+        result = TagDAO.get_tagged_objects_for_tags(tags, ["dashboard"])
         assert len(result) == 1
 
-        result = TagDAO.get_tagged_objects_by_tag_names(tags, ["chart"])
+        result = TagDAO.get_tagged_objects_for_tags(tags, ["chart"])
         assert len(result) == 1
 
         tagged_objects = (

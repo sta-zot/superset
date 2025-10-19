@@ -23,12 +23,13 @@ import {
   fireEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
+import '@testing-library/jest-dom';
 import {
   SupersetApiError,
   getExtensionsRegistry,
   makeApi,
 } from '@superset-ui/core';
-import setupCodeOverrides from 'src/setup/setupCodeOverrides';
+import setupExtensions from 'src/setup/setupExtensions';
 import DashboardEmbedModal from './index';
 
 const defaultResponse = {
@@ -142,10 +143,9 @@ test('shows and hides the confirmation modal on deactivation', async () => {
 test('enables the "Save Changes" button', async () => {
   setup();
 
-  const allowedDomainsInput = await screen.findByRole('textbox', {
-    name: /Allowed Domains/i,
-  });
-
+  const allowedDomainsInput = await screen.findByLabelText(
+    new RegExp(/Allowed Domains/, 'i'),
+  );
   const saveChangesBtn = screen.getByRole('button', { name: 'Save changes' });
 
   expect(saveChangesBtn).toBeDisabled();
@@ -162,7 +162,7 @@ test('adds extension to DashboardEmbedModal', async () => {
     <>dashboard.embed.modal.extension component</>
   ));
 
-  setupCodeOverrides();
+  setupExtensions();
   setup();
 
   expect(

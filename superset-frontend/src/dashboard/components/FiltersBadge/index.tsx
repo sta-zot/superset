@@ -37,10 +37,10 @@ import {
   t,
   usePrevious,
 } from '@superset-ui/core';
-import { Icons } from '@superset-ui/core/components/Icons';
+import Icons from 'src/components/Icons';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
-import { Badge } from '@superset-ui/core/components';
+import Badge from 'src/components/Badge';
 import DetailsPanelPopover from './DetailsPanel';
 import {
   Indicator,
@@ -60,32 +60,42 @@ const StyledFilterCount = styled.div`
     justify-items: center;
     align-items: center;
     cursor: pointer;
-    margin-right: ${theme.sizeUnit}px;
-    padding-left: ${theme.sizeUnit * 2}px;
-    padding-right: ${theme.sizeUnit * 2}px;
-    background: ${theme.colorBgContainer};
+    margin-right: ${theme.gridUnit}px;
+    padding-left: ${theme.gridUnit * 2}px;
+    padding-right: ${theme.gridUnit * 2}px;
+    background: ${theme.colors.grayscale.light4};
     border-radius: 4px;
     height: 100%;
     .anticon {
       vertical-align: middle;
-      color: ${theme.colorIcon};
+      color: ${theme.colors.grayscale.base};
       &:hover {
-        color: ${theme.colorIconHover};
+        color: ${theme.colors.grayscale.light1};
       }
     }
 
     .incompatible-count {
-      font-size: ${theme.fontSizeSM}px;
+      font-size: ${theme.typography.sizes.s}px;
     }
     &:focus-visible {
-      outline: 2px solid ${theme.colorPrimary};
+      outline: 2px solid ${theme.colors.primary.dark2};
     }
   `}
 `;
 
 const StyledBadge = styled(Badge)`
   ${({ theme }) => `
-    margin-left: ${theme.sizeUnit * 2}px;
+    margin-left: ${theme.gridUnit * 2}px;
+    &>sup.antd5-badge-count {
+      padding: 0 ${theme.gridUnit}px;
+      min-width: ${theme.gridUnit * 4}px;
+      height: ${theme.gridUnit * 4}px;
+      line-height: 1.5;
+      font-weight: ${theme.typography.weights.medium};
+      font-size: ${theme.typography.sizes.s - 1}px;
+      box-shadow: none;
+      padding: 0 ${theme.gridUnit}px;
+    }
   `}
 `;
 
@@ -299,12 +309,11 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
         tabIndex={0}
         onKeyDown={handleKeyDown}
       >
-        <Icons.FilterOutlined iconSize="m" />
+        <Icons.Filter iconSize="m" />
         <StyledBadge
           data-test="applied-filter-count"
           className="applied-count"
           count={filterCount}
-          size="small"
           showZero
         />
       </StyledFilterCount>

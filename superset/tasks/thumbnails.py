@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 @celery_app.task(name="cache_chart_thumbnail", soft_time_limit=300)
 def cache_chart_thumbnail(
     current_user: Optional[str],
-    chart_id: str,
+    chart_id: int,
     force: bool,
     window_size: Optional[WindowSize] = None,
     thumb_size: Optional[WindowSize] = None,

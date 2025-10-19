@@ -60,7 +60,6 @@ export type SavedMetric = string;
  */
 export interface Metric {
   id?: number;
-  uuid: string;
   metric_name: string;
   expression?: Maybe<string>;
   certification_details?: Maybe<string>;

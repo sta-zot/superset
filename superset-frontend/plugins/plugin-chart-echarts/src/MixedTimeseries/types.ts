@@ -57,13 +57,10 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   truncateYAxis: boolean;
   truncateYAxisSecondary: boolean;
   timeGrainSqla?: TimeGranularity;
-  forceMaxInterval?: boolean;
   tooltipTimeFormat?: string;
   zoomable: boolean;
   richTooltip: boolean;
-  showQueryIdentifiers?: boolean;
   xAxisLabelRotation: number;
-  xAxisLabelInterval?: number | string;
   colorScheme?: string;
   // types specific to Query A and Query B
   area: boolean;
@@ -135,9 +132,7 @@ export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   groupbyB: [],
   zoomable: TIMESERIES_DEFAULTS.zoomable,
   richTooltip: TIMESERIES_DEFAULTS.richTooltip,
-  showQueryIdentifiers: false,
   xAxisLabelRotation: TIMESERIES_DEFAULTS.xAxisLabelRotation,
-  xAxisLabelInterval: TIMESERIES_DEFAULTS.xAxisLabelInterval,
   ...DEFAULT_TITLE_FORM_DATA,
 };
 

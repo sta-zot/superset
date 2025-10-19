@@ -60,9 +60,7 @@ embedDashboard({
       }
   },
     // optional additional iframe sandbox attributes
-  iframeSandboxExtras: ['allow-top-navigation', 'allow-popups-to-escape-sandbox'],
-  // optional config to enforce a particular referrerPolicy
-  referrerPolicy: "same-origin"
+  iframeSandboxExtras: ['allow-top-navigation', 'allow-popups-to-escape-sandbox']
 });
 ```
 
@@ -116,11 +114,8 @@ Example `POST /security/guest_token` payload:
 }
 ```
 
-Alternatively, a guest token can be created directly in your app without interacting with the Superset API.
-To do this, you should update the `GUEST_TOKEN_JWT_SECRET`
-in the Superset [config.py](https://github.com/apache/superset/blob/master/superset/config.py). Also set the
-`GUEST_TOKEN_JWT_AUDIENCE` variable that matches what is set for the `aud` in the JSON payload:
-
+Alternatively, a guest token can be created directly in your app with a json like the following, and then signed
+with the secret set in configuration variable `GUEST_TOKEN_JWT_SECRET` (see configuration file config.py)
 ```
 {
   "user": {
@@ -142,13 +137,6 @@ in the Superset [config.py](https://github.com/apache/superset/blob/master/super
 }
 ```
 
-In this example, the configuration file includes the following setting:
-
-```python
-GUEST_TOKEN_JWT_AUDIENCE="superset"
-```
-
-
 ### Sandbox iframe
 
 The Embedded SDK creates an iframe with [sandbox](https://developer.mozilla.org/es/docs/Web/HTML/Element/iframe#sandbox) mode by default
@@ -158,11 +146,3 @@ To pass additional sandbox attributes you can use `iframeSandboxExtras`:
   // optional additional iframe sandbox attributes
   iframeSandboxExtras: ['allow-top-navigation', 'allow-popups-to-escape-sandbox']
 ```
-
-### Enforcing a ReferrerPolicy on the request triggered by the iframe
-
-By default, the Embedded SDK creates an `iframe` element without a `referrerPolicy` value enforced. This means that a policy defined for `iframe` elements at the host app level would reflect to it.
-
-This can be an issue as during the embedded enablement for a dashboard it's possible to specify which domain(s) are allowed to embed the dashboard, and this validation happens throuth the `Referrer` header. That said, in case the hosting app has a more restrictive policy that would omit this header, this validation would fail.
-
-Use the `referrerPolicy` parameter in the `embedDashboard` method to specify [a particular policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Referrer-Policy) that works for your implementation.

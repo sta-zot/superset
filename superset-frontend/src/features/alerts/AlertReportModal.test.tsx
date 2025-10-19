@@ -16,13 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
-import {
-  render,
-  screen,
-  userEvent,
-  within,
-} from 'spec/helpers/testing-library';
+import { render, screen, within } from 'spec/helpers/testing-library';
+import { VizType } from '@superset-ui/core';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import AlertReportModal, { AlertReportModalProps } from './AlertReportModal';
 import { AlertObject, NotificationMethodOption } from './types';
@@ -48,7 +45,6 @@ const generateMockPayload = (dashboard = true) => {
     database: {
       database_name: 'examples',
       id: 1,
-      value: 1,
     },
     description: 'Some description',
     extra: {},
@@ -93,9 +89,8 @@ const generateMockPayload = (dashboard = true) => {
     ...mockPayload,
     chart: {
       id: 1,
-      slice_name: 'test chart',
-      viz_type: 'table',
-      value: 1,
+      slice_name: 'Test Chart',
+      viz_type: VizType.Table,
     },
   };
 };
@@ -135,7 +130,7 @@ const validAlert: AlertObject = {
   creation_method: 'alerts_reports',
   crontab: '0 0 * * *',
   dashboard_id: 0,
-  chart_id: 1,
+  chart_id: 0,
   force_screenshot: false,
   last_state: 'Not triggered',
   name: 'Test Alert',
@@ -154,24 +149,6 @@ const validAlert: AlertObject = {
   ],
   timezone: 'America/Rainy_River',
   type: 'Alert',
-  database: {
-    id: 1,
-    value: 1,
-    database_name: 'test_db',
-  } as any,
-  sql: 'SELECT COUNT(*) FROM test_table',
-  validator_config_json: {
-    op: '>',
-    threshold: 10.0,
-  },
-  working_timeout: 3600,
-  chart: {
-    id: 1,
-    value: 1,
-    label: 'Test Chart',
-    slice_name: 'Test Chart',
-    viz_type: 'table',
-  } as any,
 };
 
 jest.mock('./buildErrorTooltipMessage', () => ({
@@ -218,8 +195,8 @@ const comboboxSelect = async (
 test('properly renders add alert text', () => {
   const addAlertProps = generateMockedProps();
   render(<AlertReportModal {...addAlertProps} />, { useRedux: true });
-  // The title is now in the modal header, not as a heading role
-  expect(screen.getByText('Add alert')).toBeInTheDocument();
+  const addAlertHeading = screen.getByRole('heading', { name: /add alert/i });
+  expect(addAlertHeading).toBeInTheDocument();
   const addButton = screen.getByRole('button', { name: /add/i });
   expect(addButton).toBeInTheDocument();
 });
@@ -228,8 +205,10 @@ test('properly renders edit alert text', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true)} />, {
     useRedux: true,
   });
-  // The title is now in the modal header, not as a heading role
-  expect(screen.getByText('Edit alert')).toBeInTheDocument();
+  const editAlertHeading = screen.getByRole('heading', {
+    name: /edit alert/i,
+  });
+  expect(editAlertHeading).toBeInTheDocument();
   const saveButton = screen.getByRole('button', { name: /save/i });
   expect(saveButton).toBeInTheDocument();
 });
@@ -238,8 +217,10 @@ test('properly renders add report text', () => {
   render(<AlertReportModal {...generateMockedProps(true)} />, {
     useRedux: true,
   });
-  // The title is now in the modal header, not as a heading role
-  expect(screen.getByText('Add report')).toBeInTheDocument();
+  const addReportHeading = screen.getByRole('heading', {
+    name: /add report/i,
+  });
+  expect(addReportHeading).toBeInTheDocument();
   const addButton = screen.getByRole('button', { name: /add/i });
   expect(addButton).toBeInTheDocument();
 });
@@ -249,8 +230,10 @@ test('properly renders edit report text', async () => {
     useRedux: true,
   });
 
-  // The title is now in the modal header, not as a heading role
-  expect(screen.getByText('Edit report')).toBeInTheDocument();
+  const editReportHeading = screen.getByRole('heading', {
+    name: /edit report/i,
+  });
+  expect(editReportHeading).toBeInTheDocument();
   const saveButton = screen.getByRole('button', { name: /save/i });
   expect(saveButton).toBeInTheDocument();
 });
@@ -277,10 +260,6 @@ test('renders 5 checkmarks for a valid alert', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
     useRedux: true,
   });
-
-  // Wait for validation to complete by waiting for the modal to fully render
-  await screen.findByText('Edit alert');
-
   const checkmarks = await screen.findAllByRole('img', {
     name: /check-circle/i,
   });
@@ -382,7 +361,7 @@ test('renders all Alert Condition fields', async () => {
   });
   userEvent.click(screen.getByTestId('alert-condition-panel'));
   const database = screen.getByRole('combobox', { name: /database/i });
-  const sql = screen.getByRole('textbox');
+  const sql = screen.getAllByRole('textbox')[2];
   const condition = screen.getByRole('combobox', { name: /condition/i });
   const threshold = screen.getByRole('spinbutton');
   expect(database).toBeInTheDocument();
@@ -452,7 +431,7 @@ test('renders tab selection when Dashboard is selected', async () => {
   expect(
     screen.getByRole('combobox', { name: /dashboard/i }),
   ).toBeInTheDocument();
-  expect(screen.getAllByText(/select tab/i)).toHaveLength(1);
+  expect(screen.getByText(/select tab/i)).toBeInTheDocument();
 });
 
 test('changes to content options when chart is selected', async () => {
@@ -665,16 +644,4 @@ test('removes notification method on clicking trash can', async () => {
   expect(
     screen.getAllByRole('combobox', { name: /delivery method/i }).length,
   ).toBe(1);
-});
-
-test('renders dashboard filter dropdowns', async () => {
-  render(<AlertReportModal {...generateMockedProps(true, true)} />, {
-    useRedux: true,
-  });
-
-  userEvent.click(screen.getByTestId('contents-panel'));
-  const filterOptionDropdown = screen.getByRole('combobox', {
-    name: /select filter/i,
-  });
-  expect(filterOptionDropdown).toBeInTheDocument();
 });

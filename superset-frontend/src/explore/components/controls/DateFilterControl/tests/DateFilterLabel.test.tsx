@@ -20,7 +20,8 @@ import thunk from 'redux-thunk';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { render, screen } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 
 import { NO_TIME_RANGE } from '@superset-ui/core';
 import DateFilterLabel from '..';
@@ -55,6 +56,15 @@ test('DateFilter with default props', () => {
   userEvent.click(screen.getByText(NO_TIME_RANGE));
   expect(
     screen.getByTestId(DateFilterTestKey.PopoverOverlay),
+  ).toBeInTheDocument();
+});
+
+test('DateFilter should be applied the overlayStyle props', () => {
+  render(setup({ onChange: () => {}, overlayStyle: 'Modal' }));
+  // should be Modal as overlay
+  userEvent.click(screen.getByText(NO_TIME_RANGE));
+  expect(
+    screen.getByTestId(DateFilterTestKey.ModalOverlay),
   ).toBeInTheDocument();
 });
 

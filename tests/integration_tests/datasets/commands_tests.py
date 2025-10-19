@@ -78,13 +78,11 @@ class TestExportDatasetsCommand(SupersetTestCase):
 
         assert list(contents.keys()) == [
             "metadata.yaml",
-            f"datasets/examples/energy_usage_{example_dataset.id}.yaml",
+            "datasets/examples/energy_usage.yaml",
             "databases/examples.yaml",
         ]
 
-        metadata = yaml.safe_load(
-            contents[f"datasets/examples/energy_usage_{example_dataset.id}.yaml"]()
-        )
+        metadata = yaml.safe_load(contents["datasets/examples/energy_usage.yaml"]())
 
         # sort columns for deterministic comparison
         metadata["columns"] = sorted(metadata["columns"], key=itemgetter("column_name"))
@@ -173,7 +171,6 @@ class TestExportDatasetsCommand(SupersetTestCase):
                     "warning_text": None,
                 },
             ],
-            "folders": None,
             "normalize_columns": False,
             "always_filter_main_dttm": False,
             "offset": 0,
@@ -220,9 +217,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
         command = ExportDatasetsCommand([example_dataset.id])
         contents = dict(command.run())
 
-        metadata = yaml.safe_load(
-            contents[f"datasets/examples/energy_usage_{example_dataset.id}.yaml"]()
-        )
+        metadata = yaml.safe_load(contents["datasets/examples/energy_usage.yaml"]())
         assert list(metadata.keys()) == [
             "table_name",
             "main_dttm_col",
@@ -240,7 +235,6 @@ class TestExportDatasetsCommand(SupersetTestCase):
             "extra",
             "normalize_columns",
             "always_filter_main_dttm",
-            "folders",
             "uuid",
             "metrics",
             "columns",
@@ -265,7 +259,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
 
         assert list(contents.keys()) == [
             "metadata.yaml",
-            f"datasets/examples/energy_usage_{example_dataset.id}.yaml",
+            "datasets/examples/energy_usage.yaml",
         ]
 
 
@@ -490,7 +484,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         command = v1.ImportDatasetsCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value).startswith("Error importing dataset")
+        assert str(excinfo.value) == "Error importing dataset"
         assert excinfo.value.normalized_messages() == {
             "metadata.yaml": {"type": ["Must be equal to SqlaTable."]}
         }
@@ -503,7 +497,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         command = v1.ImportDatasetsCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value).startswith("Error importing dataset")
+        assert str(excinfo.value) == "Error importing dataset"
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
                 "database_name": ["Missing data for required field."],

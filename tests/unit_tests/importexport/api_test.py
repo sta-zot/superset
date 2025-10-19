@@ -108,7 +108,6 @@ def test_import_assets(
     passwords = {"assets_export/databases/imported_database.yaml": "SECRET"}
     ImportAssetsCommand.assert_called_with(
         mocked_contents,
-        sparse=False,
         passwords=passwords,
         ssh_tunnel_passwords=None,
         ssh_tunnel_private_keys=None,

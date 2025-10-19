@@ -187,7 +187,7 @@ def test_extract_errors() -> None:
             error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
             level=ErrorLevel.ERROR,
             extra={
-                "engine_name": "Databricks (legacy)",
+                "engine_name": "Databricks",
                 "issue_codes": [
                     {
                         "code": 1002,
@@ -214,7 +214,7 @@ def test_extract_errors_with_context() -> None:
             error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
             level=ErrorLevel.ERROR,
             extra={
-                "engine_name": "Databricks (legacy)",
+                "engine_name": "Databricks",
                 "issue_codes": [
                     {
                         "code": 1002,

@@ -29,7 +29,7 @@ from tests.integration_tests.dashboards.consts import DEFAULT_DASHBOARD_SLUG_TO_
 
 logger = logging.getLogger(__name__)
 
-session = appbuilder.session
+session = appbuilder.get_session
 
 
 def get_mock_positions(dashboard: Dashboard) -> dict[str, Any]:

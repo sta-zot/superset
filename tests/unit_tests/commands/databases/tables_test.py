@@ -34,7 +34,6 @@ def database_with_catalog(mocker: MockerFixture) -> MagicMock:
 
     database = mocker.MagicMock()
     database.database_name = "test_database"
-    database.get_default_catalog.return_value = "catalog1"
     database.get_all_table_names_in_schema.return_value = {
         ("table1", "schema1", "catalog1"),
         ("table2", "schema1", "catalog1"),
@@ -42,7 +41,6 @@ def database_with_catalog(mocker: MockerFixture) -> MagicMock:
     database.get_all_view_names_in_schema.return_value = {
         ("view1", "schema1", "catalog1"),
     }
-    database.get_all_materialized_view_names_in_schema.return_value = set()
 
     DatabaseDAO = mocker.patch("superset.commands.database.tables.DatabaseDAO")  # noqa: N806
     DatabaseDAO.find_by_id.return_value = database
@@ -59,7 +57,6 @@ def database_without_catalog(mocker: MockerFixture) -> MagicMock:
 
     database = mocker.MagicMock()
     database.database_name = "test_database"
-    database.get_default_catalog.return_value = None
     database.get_all_table_names_in_schema.return_value = {
         ("table1", "schema1", None),
         ("table2", "schema1", None),
@@ -67,7 +64,6 @@ def database_without_catalog(mocker: MockerFixture) -> MagicMock:
     database.get_all_view_names_in_schema.return_value = {
         ("view1", "schema1", None),
     }
-    database.get_all_materialized_view_names_in_schema.return_value = set()
 
     DatabaseDAO = mocker.patch("superset.commands.database.tables.DatabaseDAO")  # noqa: N806
     DatabaseDAO.find_by_id.return_value = database
@@ -91,7 +87,6 @@ def test_tables_with_catalog(
                 DatasourceName("table2", "schema1", "catalog1"),
             },
             {DatasourceName("view1", "schema1", "catalog1")},
-            set(),  # Empty set for materialized views
         ],
     )
 
@@ -130,12 +125,6 @@ def test_tables_with_catalog(
                     DatasourceName("view1", "schema1", "catalog1"),
                 ],
             ),
-            mocker.call(
-                database=database_with_catalog,
-                catalog="catalog1",
-                schema="schema1",
-                datasource_names=[],
-            ),
         ],
     )
 
@@ -164,7 +153,6 @@ def test_tables_without_catalog(
                 DatasourceName("table2", "schema1"),
             },
             {DatasourceName("view1", "schema1")},
-            set(),  # Empty set for materialized views
         ],
     )
 
@@ -202,12 +190,6 @@ def test_tables_without_catalog(
                 datasource_names=[
                     DatasourceName("view1", "schema1"),
                 ],
-            ),
-            mocker.call(
-                database=database_without_catalog,
-                catalog=None,
-                schema="schema1",
-                datasource_names=[],
             ),
         ],
     )

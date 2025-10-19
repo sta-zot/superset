@@ -41,8 +41,6 @@ from superset.utils.core import (  # noqa: E402
 
 Base = declarative_base()
 
-logger = logging.getLogger("alembic.env")
-
 
 class Slice(Base):
     __tablename__ = "slices"
@@ -65,7 +63,7 @@ def upgrade():
                 if source != target:
                     slc.params = json.dumps(target, sort_keys=True)
             except Exception as ex:
-                logger.warning(ex)
+                logging.warn(ex)
 
     session.commit()
     session.close()

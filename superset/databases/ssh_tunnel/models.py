@@ -18,6 +18,7 @@
 from typing import Any
 
 import sqlalchemy as sa
+from flask import current_app
 from flask_appbuilder import Model
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.types import Text
@@ -30,6 +31,8 @@ from superset.models.helpers import (
     ExtraJSONMixin,
     ImportExportMixin,
 )
+
+app_config = current_app.config
 
 
 class SSHTunnel(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):

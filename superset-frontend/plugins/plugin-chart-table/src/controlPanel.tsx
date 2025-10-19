@@ -28,33 +28,25 @@ import {
   ControlStateMapping,
   D3_TIME_FORMAT_OPTIONS,
   Dataset,
-  DEFAULT_MAX_ROW,
-  DEFAULT_MAX_ROW_TABLE_SERVER,
   defineSavedMetrics,
-  formatSelectOptions,
   getStandardizedControls,
   QueryModeLabel,
   sections,
   sharedControls,
-  shouldSkipMetricColumn,
-  isRegularMetric,
-  isPercentMetric,
 } from '@superset-ui/chart-controls';
 import {
   ensureIsArray,
+  GenericDataType,
   isAdhocColumn,
   isPhysicalColumn,
-  legacyValidateInteger,
   QueryFormColumn,
   QueryMode,
   SMART_DATE_ID,
   t,
-  validateMaxValue,
-  validateServerPagination,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
-import { isEmpty, last } from 'lodash';
-import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
+
+import { isEmpty } from 'lodash';
+import { PAGE_SIZE_OPTIONS } from './consts';
 import { ColorSchemeEnum } from './types';
 
 function getQueryMode(controls: ControlStateMapping): QueryMode {
@@ -110,8 +102,8 @@ const allColumnsControl: typeof sharedControls.groupby = {
   freeForm: true,
   allowAll: true,
   commaChoosesOption: false,
-  optionRenderer: c => <ColumnOption showType column={c as ColumnMeta} />,
-  valueRenderer: c => <ColumnOption column={c as ColumnMeta} />,
+  optionRenderer: c => <ColumnOption showType column={c} />,
+  valueRenderer: c => <ColumnOption column={c} />,
   valueKey: 'column_name',
   mapStateToProps: ({ datasource, controls }, controlState) => ({
     options: datasource?.columns || [],
@@ -161,29 +153,11 @@ const generateComparisonColumns = (colname: string) => [
   `△ ${colname}`,
   `% ${colname}`,
 ];
-
 /**
  * Generate column types for the comparison columns.
  */
 const generateComparisonColumnTypes = (count: number) =>
   Array(count).fill(GenericDataType.Numeric);
-
-const percentMetricCalculationControl: ControlConfig<'SelectControl'> = {
-  type: 'SelectControl',
-  label: t('Percentage metric calculation'),
-  description: t(
-    'Row Limit: percentages are calculated based on the subset of data retrieved, respecting the row limit. ' +
-      'All Records: Percentages are calculated based on the total dataset, ignoring the row limit.',
-  ),
-  default: 'row_limit',
-  clearable: false,
-  choices: [
-    ['row_limit', t('Row limit')],
-    ['all_records', t('All records')],
-  ],
-  visibility: isAggMode,
-  renderTrigger: false,
-};
 
 const processComparisonColumns = (columns: any[], suffix: string) =>
   columns
@@ -211,15 +185,6 @@ const processComparisonColumns = (columns: any[], suffix: string) =>
       return [];
     })
     .flat();
-
-/*
-Options for row limit control
-*/
-
-export const ROW_LIMIT_OPTIONS_TABLE = [
-  10, 50, 100, 250, 500, 1000, 5000, 10000, 50000, 100000, 150000, 200000,
-  250000, 300000, 350000, 400000, 450000, 500000,
-];
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -396,68 +361,27 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'row_limit',
+            override: {
+              default: 1000,
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                !controls?.server_pagination?.value,
+            },
+          },
+          {
             name: 'server_page_length',
             config: {
               type: 'SelectControl',
               freeForm: true,
               label: t('Server Page Length'),
               default: 10,
-              choices: SERVER_PAGE_SIZE_OPTIONS,
+              choices: PAGE_SIZE_OPTIONS,
               description: t('Rows per page, 0 means no pagination'),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.server_pagination?.value),
             },
           },
         ],
-        [
-          {
-            name: 'row_limit',
-            config: {
-              type: 'SelectControl',
-              freeForm: true,
-              label: t('Row limit'),
-              clearable: false,
-              mapStateToProps: state => ({
-                maxValue: state?.common?.conf?.TABLE_VIZ_MAX_ROW_SERVER,
-                server_pagination: state?.form_data?.server_pagination,
-                maxValueWithoutServerPagination:
-                  state?.common?.conf?.SQL_MAX_ROW,
-              }),
-              validators: [
-                legacyValidateInteger,
-                (v, state) =>
-                  validateMaxValue(
-                    v,
-                    state?.maxValue || DEFAULT_MAX_ROW_TABLE_SERVER,
-                  ),
-                (v, state) =>
-                  validateServerPagination(
-                    v,
-                    state?.server_pagination,
-                    state?.maxValueWithoutServerPagination || DEFAULT_MAX_ROW,
-                    state?.maxValue || DEFAULT_MAX_ROW_TABLE_SERVER,
-                  ),
-              ],
-              // Re run the validations when this control value
-              validationDependancies: ['server_pagination'],
-              default: 10000,
-              choices: formatSelectOptions(ROW_LIMIT_OPTIONS_TABLE),
-              description: t(
-                'Limits the number of the rows that are computed in the query that is the source of the data used for this chart.',
-              ),
-            },
-            override: {
-              default: 1000,
-            },
-          },
-        ],
-        [
-          {
-            name: 'percent_metric_calculation',
-            config: percentMetricCalculationControl,
-          },
-        ],
-
         [
           {
             name: 'show_totals',
@@ -567,83 +491,38 @@ const config: ControlPanelConfig = {
                 return true;
               },
               mapStateToProps(explore, _, chart) {
-                const timeComparisonValue =
-                  explore?.controls?.time_compare?.value;
+                const timeComparisonStatus = !isEmpty(
+                  explore?.controls?.time_compare?.value,
+                );
+
                 const { colnames: _colnames, coltypes: _coltypes } =
                   chart?.queriesResponse?.[0] ?? {};
                 let colnames: string[] = _colnames || [];
                 let coltypes: GenericDataType[] = _coltypes || [];
-                const childColumnMap: Record<string, boolean> = {};
-                const timeComparisonColumnMap: Record<string, boolean> = {};
 
-                if (!isEmpty(timeComparisonValue)) {
+                if (timeComparisonStatus) {
                   /**
                    * Replace numeric columns with sets of comparison columns.
                    */
                   const updatedColnames: string[] = [];
                   const updatedColtypes: GenericDataType[] = [];
-
-                  colnames
-                    .filter(
-                      colname =>
-                        last(colname.split('__')) !== timeComparisonValue,
-                    )
-                    .forEach((colname, index) => {
-                      // Skip unprefixed percent metric columns if a prefixed version exists
-                      // But don't skip if it's also a regular metric
-                      if (
-                        shouldSkipMetricColumn({
-                          colname,
-                          colnames,
-                          formData: explore.form_data,
-                        })
-                      ) {
-                        return;
-                      }
-
-                      const isMetric = isRegularMetric(
-                        colname,
-                        explore.form_data,
+                  colnames.forEach((colname, index) => {
+                    if (coltypes[index] === GenericDataType.Numeric) {
+                      updatedColnames.push(
+                        ...generateComparisonColumns(colname),
                       );
-                      const isPercentMetricValue = isPercentMetric(
-                        colname,
-                        explore.form_data,
-                      );
-
-                      // Generate comparison columns for metrics (time comparison feature)
-                      if (isMetric || isPercentMetricValue) {
-                        const comparisonColumns =
-                          generateComparisonColumns(colname);
-                        comparisonColumns.forEach((name, idx) => {
-                          updatedColnames.push(name);
-                          updatedColtypes.push(
-                            ...generateComparisonColumnTypes(4),
-                          );
-                          timeComparisonColumnMap[name] = true;
-                          if (idx === 0 && name.startsWith('Main ')) {
-                            childColumnMap[name] = false;
-                          } else {
-                            childColumnMap[name] = true;
-                          }
-                        });
-                      } else {
-                        updatedColnames.push(colname);
-                        updatedColtypes.push(coltypes[index]);
-                        childColumnMap[colname] = false;
-                        timeComparisonColumnMap[colname] = false;
-                      }
-                    });
+                      updatedColtypes.push(...generateComparisonColumnTypes(4));
+                    } else {
+                      updatedColnames.push(colname);
+                      updatedColtypes.push(coltypes[index]);
+                    }
+                  });
 
                   colnames = updatedColnames;
                   coltypes = updatedColtypes;
                 }
                 return {
-                  columnsPropsObject: {
-                    colnames,
-                    coltypes,
-                    childColumnMap,
-                    timeComparisonColumnMap,
-                  },
+                  columnsPropsObject: { colnames, coltypes },
                 };
               },
             },
@@ -660,7 +539,7 @@ const config: ControlPanelConfig = {
             name: 'show_cell_bars',
             config: {
               type: 'CheckboxControl',
-              label: t('Show cell bars'),
+              label: t('Show Cell bars'),
               renderTrigger: true,
               default: true,
               description: t(
@@ -688,7 +567,7 @@ const config: ControlPanelConfig = {
             name: 'color_pn',
             config: {
               type: 'CheckboxControl',
-              label: t('Add colors to cell bars for +/-'),
+              label: t('add colors to cell bars for +/-'),
               renderTrigger: true,
               default: true,
               description: t(
@@ -702,7 +581,7 @@ const config: ControlPanelConfig = {
             name: 'comparison_color_enabled',
             config: {
               type: 'CheckboxControl',
-              label: t('Basic conditional formatting'),
+              label: t('basic conditional formatting'),
               renderTrigger: true,
               visibility: ({ controls }) =>
                 !isEmpty(controls?.time_compare?.value),
@@ -743,7 +622,7 @@ const config: ControlPanelConfig = {
             config: {
               type: 'ConditionalFormattingControl',
               renderTrigger: true,
-              label: t('Custom conditional formatting'),
+              label: t('Custom Conditional Formatting'),
               extraColorChoices: [
                 {
                   value: ColorSchemeEnum.Green,
@@ -771,22 +650,17 @@ const config: ControlPanelConfig = {
                   chart?.queriesResponse?.[0] ?? {};
                 const numericColumns =
                   Array.isArray(colnames) && Array.isArray(coltypes)
-                    ? colnames.reduce((acc, colname, index) => {
-                        if (
-                          coltypes[index] === GenericDataType.Numeric ||
-                          (!explore?.controls?.time_compare?.value &&
-                            coltypes[index] === GenericDataType.String)
-                        ) {
-                          acc.push({
-                            value: colname,
-                            label: Array.isArray(verboseMap)
-                              ? colname
-                              : (verboseMap[colname] ?? colname),
-                            dataType: coltypes[index],
-                          });
-                        }
-                        return acc;
-                      }, [])
+                    ? colnames
+                        .filter(
+                          (colname: string, index: number) =>
+                            coltypes[index] === GenericDataType.Numeric,
+                        )
+                        .map((colname: string) => ({
+                          value: colname,
+                          label: Array.isArray(verboseMap)
+                            ? colname
+                            : (verboseMap[colname] ?? colname),
+                        }))
                     : [];
                 const columnOptions = explore?.controls?.time_compare?.value
                   ? processComparisonColumns(
@@ -816,9 +690,6 @@ const config: ControlPanelConfig = {
       }),
       visibility: isAggMode,
     },
-    sections.matrixifyRowSection,
-    sections.matrixifyColumnSection,
-    sections.matrixifySection,
   ],
   formDataOverrides: formData => ({
     ...formData,

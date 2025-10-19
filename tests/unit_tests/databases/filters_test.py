@@ -60,7 +60,8 @@ def test_database_filter_full_db_access(mocker: MockerFixture) -> None:
     """
     from superset.models.core import Database
 
-    mocker.patch("flask.current_app.config", {"EXTRA_DYNAMIC_QUERY_FILTERS": False})
+    current_app = mocker.patch("superset.databases.filters.current_app")
+    current_app.config = {"EXTRA_DYNAMIC_QUERY_FILTERS": False}
     mocker.patch.object(security_manager, "can_access_all_databases", return_value=True)
 
     engine = create_engine("sqlite://")
@@ -80,7 +81,8 @@ def test_database_filter(mocker: MockerFixture) -> None:
     """
     from superset.models.core import Database
 
-    mocker.patch("flask.current_app.config", {"EXTRA_DYNAMIC_QUERY_FILTERS": False})
+    current_app = mocker.patch("superset.databases.filters.current_app")
+    current_app.config = {"EXTRA_DYNAMIC_QUERY_FILTERS": False}
     mocker.patch.object(
         security_manager,
         "can_access_all_databases",

@@ -15,17 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 import urllib
-from contextlib import nullcontext
 from typing import Any
 from urllib.parse import urlparse
 
-from flask import current_app as app, has_request_context, url_for
+from flask import current_app, url_for
 
 
 def get_url_host(user_friendly: bool = False) -> str:
     if user_friendly:
-        return app.config["WEBDRIVER_BASEURL_USER_FRIENDLY"]
-    return app.config["WEBDRIVER_BASEURL"]
+        return current_app.config["WEBDRIVER_BASEURL_USER_FRIENDLY"]
+    return current_app.config["WEBDRIVER_BASEURL"]
 
 
 def headless_url(path: str, user_friendly: bool = False) -> str:
@@ -33,12 +32,7 @@ def headless_url(path: str, user_friendly: bool = False) -> str:
 
 
 def get_url_path(view: str, user_friendly: bool = False, **kwargs: Any) -> str:
-    if has_request_context():
-        request_context = nullcontext
-    else:
-        request_context = app.test_request_context
-
-    with request_context():
+    with current_app.test_request_context():
         return headless_url(url_for(view, **kwargs), user_friendly=user_friendly)
 
 

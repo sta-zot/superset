@@ -25,7 +25,7 @@ import {
 } from './utils';
 
 function interceptSamples() {
-  cy.intercept(`**/datasource/samples*`).as('samples');
+  cy.intercept(`/datasource/samples*`).as('samples');
 }
 
 function openModalFromMenu(chartType: string) {
@@ -34,8 +34,8 @@ function openModalFromMenu(chartType: string) {
   cy.get(
     `[data-test-viz-type='${chartType}'] [aria-label='More Options']`,
   ).click();
-  cy.get('.ant-dropdown')
-    .not('.ant-dropdown-hidden')
+  cy.get('.antd5-dropdown')
+    .not('.antd5-dropdown-hidden')
     .find("[role='menu'] [role='menuitem']")
     .eq(5)
     .should('contain', 'Drill to detail')
@@ -46,8 +46,8 @@ function openModalFromMenu(chartType: string) {
 function drillToDetail(targetMenuItem: string) {
   interceptSamples();
 
-  cy.get('.ant-dropdown')
-    .not('.ant-dropdown-hidden')
+  cy.get('.antd5-dropdown')
+    .not('.antd5-dropdown-hidden')
     .first()
     .find("[role='menu'] [role='menuitem']")
     .contains(new RegExp(`^${targetMenuItem}$`))
@@ -62,6 +62,7 @@ const drillToDetailBy = (targetDrill: string) => {
   interceptSamples();
 
   cy.get('.ant-dropdown:not(.ant-dropdown-hidden)')
+    .first()
     .should('be.visible')
     .find("[role='menu'] [role='menuitem']")
     .contains(/^Drill to detail by$/)
@@ -121,10 +122,7 @@ function testTimeChart(vizType: string) {
   });
 }
 
-// TODO fix this test, it has issues with autoscrolling and the locked title
-// flakes intricately when the righClick is obstructed by the title.
-// Tried many option around scrollIntoView, force, etc. but no luck.
-describe.skip('Drill to detail modal', () => {
+describe('Drill to detail modal', () => {
   beforeEach(() => {
     closeModal();
   });
@@ -154,7 +152,7 @@ describe.skip('Drill to detail modal', () => {
         cy.on('uncaught:exception', () => false);
         cy.wait('@samples');
         // reload
-        cy.get("[aria-label='Reload']").click();
+        cy.get("[aria-label='reload']").click();
         cy.wait('@samples');
         // make sure it started back from first page
         cy.get('.ant-pagination-item-active').should('contain', '1');
@@ -179,13 +177,13 @@ describe.skip('Drill to detail modal', () => {
         cy.on('uncaught:exception', () => false);
         cy.wait('@samples');
         cy.get('.virtual-table-cell').should($rows => {
-          expect($rows).to.contain('Kimberly');
+          expect($rows).to.contain('Kelly');
         });
 
         // verify scroll top on pagination
         cy.getBySelLike('Number-modal').find('.virtual-grid').scrollTo(0, 200);
 
-        cy.get('.virtual-grid').contains('Kim').should('not.be.visible');
+        cy.get('.virtual-grid').contains('Juan').should('not.be.visible');
 
         cy.get('.ant-pagination-item').eq(0).click();
 
@@ -437,7 +435,7 @@ describe.skip('Drill to detail modal', () => {
       SUPPORTED_TIER2_CHARTS.forEach(waitForChartLoad);
     });
 
-    describe('Modal actions', () => {
+    describe.only('Modal actions', () => {
       it('clears filters', () => {
         interceptSamples();
 
@@ -466,7 +464,7 @@ describe.skip('Drill to detail modal', () => {
             });
 
           // close the filter and test that data was reloaded
-          cy.getBySel('filter-col').find("[aria-label='Close']").click();
+          cy.getBySel('filter-col').find("[aria-label='close']").click();
           cy.wait('@samples');
           cy.getBySel('row-count-label').should('contain', '75.7k rows');
           cy.get('.ant-pagination-item-active').should('contain', '1');

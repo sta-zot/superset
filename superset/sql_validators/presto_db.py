@@ -22,6 +22,7 @@ import time
 from contextlib import closing
 from typing import Any, cast
 
+from superset import app
 from superset.models.core import Database
 from superset.sql.parse import SQLScript, SQLStatement
 from superset.sql_validators.base import BaseSQLValidator, SQLValidationAnnotation
@@ -29,6 +30,7 @@ from superset.utils.core import QuerySource
 
 MAX_ERROR_ROWS = 10
 
+config = app.config
 logger = logging.getLogger(__name__)
 
 

@@ -22,9 +22,9 @@ import {
   fireEvent,
   render,
   screen,
-  userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import FilterConfigPane from './FilterConfigurePane';
 
 const scrollMock = jest.fn();
@@ -96,14 +96,14 @@ test('remove filter', async () => {
 test('add filter', async () => {
   defaultRender();
   // First trash icon
-  const addFilterButton = await screen.findByText('Add filter');
+  const addFilterButton = await screen.findByText('Add Filter');
   userEvent.click(addFilterButton);
   expect(defaultProps.onAdd).toHaveBeenCalledWith('NATIVE_FILTER');
 });
 
 test('add divider', async () => {
   defaultRender();
-  const addFilterButton = await screen.findByText('Add divider');
+  const addFilterButton = await screen.findByText('Add Divider');
   userEvent.click(addFilterButton);
   expect(defaultProps.onAdd).toHaveBeenCalledWith('DIVIDER');
 });
@@ -128,7 +128,7 @@ test('filter container should scroll to bottom when adding items', async () => {
 
   defaultRender(state, props);
 
-  const addFilterButton = await screen.findByText('Add filter');
+  const addFilterButton = await screen.findByText('Add Filter');
 
   userEvent.click(addFilterButton);
 

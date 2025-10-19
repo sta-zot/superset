@@ -24,7 +24,6 @@ import pandas as pd
 import pytest
 from flask import current_app
 from pandas.api.types import is_datetime64_dtype
-from pytest_mock import MockerFixture
 
 from superset.exceptions import SupersetException
 from superset.utils.core import (
@@ -34,9 +33,7 @@ from superset.utils.core import (
     generic_find_constraint_name,
     generic_find_fk_constraint_name,
     get_datasource_full_name,
-    get_query_source_from_request,
     get_stacktrace,
-    get_user_agent,
     is_test,
     merge_extra_filters,
     merge_request_params,
@@ -44,12 +41,8 @@ from superset.utils.core import (
     parse_boolean_string,
     parse_js_uri_path_item,
     QueryObjectFilterClause,
-    QuerySource,
     remove_extra_adhoc_filters,
-    sanitize_svg_content,
-    sanitize_url,
 )
-from tests.conftest import with_config
 
 ADHOC_FILTER: QueryObjectFilterClause = {
     "col": "foo",
@@ -603,60 +596,6 @@ def test_get_datasource_full_name():
     )
 
 
-@pytest.mark.parametrize(
-    "referrer,expected",
-    [
-        (None, None),
-        ("https://mysuperset.com/abc", None),
-        ("https://mysuperset.com/superset/dashboard/", QuerySource.DASHBOARD),
-        ("https://mysuperset.com/explore/", QuerySource.CHART),
-        ("https://mysuperset.com/sqllab/", QuerySource.SQL_LAB),
-    ],
-)
-def test_get_query_source_from_request(
-    referrer: str | None,
-    expected: QuerySource | None,
-    mocker: MockerFixture,
-    app_context: None,
-) -> None:
-    if referrer:
-        # Use has_request_context to mock request when not in a request context
-        with mocker.patch("flask.has_request_context", return_value=True):
-            request_mock = mocker.MagicMock()
-            request_mock.referrer = referrer
-            mocker.patch("superset.utils.core.request", request_mock)
-            assert get_query_source_from_request() == expected
-    else:
-        # When no referrer, test without request context
-        with mocker.patch("flask.has_request_context", return_value=False):
-            assert get_query_source_from_request() == expected
-
-
-@with_config({"USER_AGENT_FUNC": None})
-def test_get_user_agent(mocker: MockerFixture, app_context: None) -> None:
-    database_mock = mocker.MagicMock()
-    database_mock.database_name = "mydb"
-
-    assert get_user_agent(database_mock, QuerySource.DASHBOARD) == "Apache Superset", (
-        "The default user agent should be returned"
-    )
-
-
-@with_config(
-    {
-        "USER_AGENT_FUNC": lambda database,
-        source: f"{database.database_name} {source.name}"
-    }
-)
-def test_get_user_agent_custom(mocker: MockerFixture, app_context: None) -> None:
-    database_mock = mocker.MagicMock()
-    database_mock.database_name = "mydb"
-
-    assert get_user_agent(database_mock, QuerySource.DASHBOARD) == "mydb DASHBOARD", (
-        "the custom user agent function result should have been returned"
-    )
-
-
 def test_merge_extra_filters():
     # does nothing if no extra filters
     form_data = {"A": 1, "B": 2, "c": "test"}
@@ -1124,41 +1063,3 @@ def test_get_stacktrace():
     except Exception:
         stacktrace = get_stacktrace()
         assert stacktrace is None
-
-
-def test_sanitize_svg_content_safe():
-    """Test that safe SVG content is preserved."""
-    safe_svg = '<svg><rect width="10" height="10"/></svg>'
-    result = sanitize_svg_content(safe_svg)
-    assert "svg" in result
-    assert "rect" in result
-
-
-def test_sanitize_svg_content_removes_scripts():
-    """Test that nh3 removes dangerous script content."""
-    malicious_svg = '<svg><script>alert("xss")</script><rect/></svg>'
-    result = sanitize_svg_content(malicious_svg)
-    assert "script" not in result.lower()
-    assert "alert" not in result
-
-
-def test_sanitize_url_relative():
-    """Test that relative URLs are allowed."""
-    assert sanitize_url("/static/spinner.gif") == "/static/spinner.gif"
-
-
-def test_sanitize_url_safe_absolute():
-    """Test that safe absolute URLs are allowed."""
-    assert (
-        sanitize_url("https://example.com/spinner.gif")
-        == "https://example.com/spinner.gif"
-    )
-    assert (
-        sanitize_url("http://localhost/spinner.png") == "http://localhost/spinner.png"
-    )
-
-
-def test_sanitize_url_blocks_dangerous():
-    """Test that dangerous URL schemes are blocked."""
-    assert sanitize_url("javascript:alert('xss')") == ""
-    assert sanitize_url("data:text/html,<script>alert(1)</script>") == ""

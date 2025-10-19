@@ -188,7 +188,6 @@ export default function transformProps(
     legendMargin,
     legendOrientation,
     legendType,
-    legendSort,
     showLegend,
     baseEdgeWidth,
     baseNodeSize,
@@ -326,10 +325,7 @@ export default function transformProps(
       selectedMode,
       ...getChartPadding(showLegend, legendOrientation, legendMargin),
       animation: DEFAULT_GRAPH_SERIES_OPTION.animation,
-      label: {
-        ...DEFAULT_GRAPH_SERIES_OPTION.label,
-        color: theme.colorText,
-      },
+      label: DEFAULT_GRAPH_SERIES_OPTION.label,
       lineStyle: DEFAULT_GRAPH_SERIES_OPTION.lineStyle,
       emphasis: DEFAULT_GRAPH_SERIES_OPTION.emphasis,
     },
@@ -354,10 +350,7 @@ export default function transformProps(
     },
     legend: {
       ...getLegendProps(legendType, legendOrientation, showLegend, theme),
-      data: categoryList.sort((a: string, b: string) => {
-        if (!legendSort) return 0;
-        return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
-      }),
+      data: categoryList,
     },
     series,
   };

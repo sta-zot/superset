@@ -18,14 +18,9 @@
  */
 import * as redux from 'react-redux';
 import sinon from 'sinon';
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-} from 'spec/helpers/testing-library';
+import { render, screen, act, waitFor } from 'spec/helpers/testing-library';
 import thunk from 'redux-thunk';
+import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
@@ -35,7 +30,13 @@ import {
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
 } from 'src/explore/constants';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import {
+  supersetTheme,
+  FeatureFlag,
+  ThemeProvider,
+  isFeatureEnabled,
+} from '@superset-ui/core';
+import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 
 import { TestDataset } from '@superset-ui/chart-controls';
@@ -146,13 +147,12 @@ jest.mock('@superset-ui/core', () => ({
 
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AdhocFilterEditPopoverSimpleTabContent', () => {
-  test('can render the simple tab form', () => {
+  it('can render the simple tab form', () => {
     expect(() => setup()).not.toThrow();
   });
 
-  test('shows boolean only operators when subject is boolean', () => {
+  it('shows boolean only operators when subject is boolean', () => {
     const props = setup({
       adhocFilter: new AdhocFilter({
         expressionType: ExpressionTypes.Simple,
@@ -180,7 +180,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
       Operators.IsFalse,
     ].map(operator => expect(isOperatorRelevant(operator, 'value')).toBe(true));
   });
-  test('shows boolean only operators when subject is number', () => {
+  it('shows boolean only operators when subject is number', () => {
     const props = setup({
       adhocFilter: new AdhocFilter({
         expressionType: ExpressionTypes.Simple,
@@ -209,7 +209,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
     ].map(operator => expect(isOperatorRelevant(operator, 'value')).toBe(true));
   });
 
-  test('will convert from individual comparator to array if the operator changes to multi', () => {
+  it('will convert from individual comparator to array if the operator changes to multi', () => {
     const props = setup();
     const { onOperatorChange } = useSimpleTabFilterProps(props);
     onOperatorChange(Operators.In);
@@ -218,7 +218,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
     expect(props.onChange.lastCall.args[0].operatorId).toEqual(Operators.In);
   });
 
-  test('will convert from array to individual comparators if the operator changes from multi', () => {
+  it('will convert from array to individual comparators if the operator changes from multi', () => {
     const props = setup({
       adhocFilter: simpleMultiAdhocFilter,
     });
@@ -234,7 +234,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
     );
   });
 
-  test('passes the new adhocFilter to onChange after onComparatorChange', () => {
+  it('passes the new adhocFilter to onChange after onComparatorChange', () => {
     const props = setup();
     const { onComparatorChange } = useSimpleTabFilterProps(props);
     onComparatorChange('20');
@@ -244,13 +244,13 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
     );
   });
 
-  test('will filter operators for table datasources', () => {
+  it('will filter operators for table datasources', () => {
     const props = setup({ datasource: { type: 'table' } });
     const { isOperatorRelevant } = useSimpleTabFilterProps(props);
     expect(isOperatorRelevant(Operators.Like, 'value')).toBe(true);
   });
 
-  test('will show LATEST PARTITION operator', () => {
+  it('will show LATEST PARTITION operator', () => {
     const props = setup({
       datasource: {
         type: 'table',
@@ -265,7 +265,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
     expect(isOperatorRelevant(Operators.LatestPartition, 'value')).toBe(false);
   });
 
-  test('will generate custom sqlExpression for LATEST PARTITION operator', () => {
+  it('will generate custom sqlExpression for LATEST PARTITION operator', () => {
     const testAdhocFilter = new AdhocFilter({
       expressionType: ExpressionTypes.Simple,
       subject: 'ds',
@@ -294,7 +294,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
       }),
     );
   });
-  test('will not display boolean operators when column type is string', () => {
+  it('will not display boolean operators when column type is string', () => {
     const props = setup({
       datasource: {
         type: 'table',
@@ -310,7 +310,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
       expect(isOperatorRelevant(operator, 'value')).toBe(false);
     });
   });
-  test('will display boolean operators when column is an expression', () => {
+  it('will display boolean operators when column is an expression', () => {
     const props = setup({
       datasource: {
         type: 'table',
@@ -331,7 +331,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
       expect(isOperatorRelevant(operator, 'value')).toBe(true);
     });
   });
-  test('sets comparator to undefined when operator is IS_TRUE', () => {
+  it('sets comparator to undefined when operator is IS_TRUE', () => {
     const props = setup();
     const { onOperatorChange } = useSimpleTabFilterProps(props);
     onOperatorChange(Operators.IsTrue);
@@ -340,7 +340,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
     expect(props.onChange.lastCall.args[0].operator).toBe('IS TRUE');
     expect(props.onChange.lastCall.args[0].comparator).toBe(undefined);
   });
-  test('sets comparator to undefined when operator is IS_FALSE', () => {
+  it('sets comparator to undefined when operator is IS_FALSE', () => {
     const props = setup();
     const { onOperatorChange } = useSimpleTabFilterProps(props);
     onOperatorChange(Operators.IsFalse);
@@ -349,7 +349,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
     expect(props.onChange.lastCall.args[0].operator).toBe('IS FALSE');
     expect(props.onChange.lastCall.args[0].comparator).toBe(undefined);
   });
-  test('sets comparator to undefined when operator is IS_NULL or IS_NOT_NULL', () => {
+  it('sets comparator to undefined when operator is IS_NULL or IS_NOT_NULL', () => {
     const props = setup();
     const { onOperatorChange } = useSimpleTabFilterProps(props);
     [Operators.IsNull, Operators.IsNotNull].forEach(op => {
@@ -387,13 +387,17 @@ fetchMock.get(ADVANCED_DATA_TYPE_ENDPOINT_INVALID, {
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AdhocFilterEditPopoverSimpleTabContent Advanced data Type Test', () => {
   const setupFilter = async (props: Props) => {
     await act(async () => {
-      render(<AdhocFilterEditPopoverSimpleTabContent {...props} />, {
-        store,
-      });
+      render(
+        <Provider store={store}>
+          <ThemeProvider theme={supersetTheme}>
+            <AdhocFilterEditPopoverSimpleTabContent {...props} />
+          </ThemeProvider>
+          ,
+        </Provider>,
+      );
     });
   };
 
@@ -409,7 +413,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent Advanced data Type Test', () =>
     isFeatureEnabledMock.mockRestore();
   });
 
-  test('should not call API when column has no advanced data type', async () => {
+  it('should not call API when column has no advanced data type', async () => {
     fetchMock.resetHistory();
 
     const props = getAdvancedDataTypeTestProps();
@@ -436,7 +440,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent Advanced data Type Test', () =>
     );
   });
 
-  test('should call API when column has advanced data type', async () => {
+  it('should call API when column has advanced data type', async () => {
     fetchMock.resetHistory();
 
     const props = getAdvancedDataTypeTestProps({
@@ -473,7 +477,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent Advanced data Type Test', () =>
     expect(props.validHandler.lastCall.args[0]).toBe(true);
   });
 
-  test('save button should be disabled if error message from API is returned', async () => {
+  it('save button should be disabled if error message from API is returned', async () => {
     fetchMock.resetHistory();
 
     const props = getAdvancedDataTypeTestProps({
@@ -510,7 +514,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent Advanced data Type Test', () =>
     expect(props.validHandler.lastCall.args[0]).toBe(false);
   });
 
-  test('advanced data type operator list should update after API response', async () => {
+  it('advanced data type operator list should update after API response', async () => {
     fetchMock.resetHistory();
 
     const props = getAdvancedDataTypeTestProps({
@@ -546,20 +550,12 @@ describe('AdhocFilterEditPopoverSimpleTabContent Advanced data Type Test', () =>
     );
     expect(props.validHandler.lastCall.args[0]).toBe(true);
 
-    const operatorValueField = screen.getByRole('combobox', {
-      name: 'Select operator',
-    });
-
-    userEvent.click(operatorValueField);
+    const operatorValueField = screen.getByText('1 operator(s)');
 
     await act(async () => {
       userEvent.type(operatorValueField, '{enter}');
     });
 
-    expect(
-      await screen.findByText('Equal to (=)', {
-        selector: '.ant-select-selection-item',
-      }),
-    ).toBeInTheDocument();
+    expect(screen.getByText('EQUALS')).toBeInTheDocument();
   });
 });

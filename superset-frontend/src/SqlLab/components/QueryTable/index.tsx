@@ -17,16 +17,8 @@
  * under the License.
  */
 import { useMemo, ReactNode } from 'react';
-import {
-  Card,
-  Button,
-  Tooltip,
-  Label,
-  Icons,
-  ModalTrigger,
-  TableView,
-} from '@superset-ui/core/components';
-import ProgressBar from '@superset-ui/core/components/ProgressBar';
+import Card from 'src/components/Card';
+import ProgressBar from 'src/components/ProgressBar';
 import { t, useTheme, QueryResponse } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -37,12 +29,18 @@ import {
   clearQueryResults,
   removeQuery,
 } from 'src/SqlLab/actions/sqlLab';
-import { fDuration, extendedDayjs } from '@superset-ui/core/utils/dates';
+import TableView from 'src/components/TableView';
+import Button from 'src/components/Button';
+import { fDuration, extendedDayjs } from 'src/utils/dates';
+import Icons from 'src/components/Icons';
+import Label from 'src/components/Label';
+import { Tooltip } from 'src/components/Tooltip';
 import { SqlLabRootState } from 'src/SqlLab/types';
+import ModalTrigger from 'src/components/ModalTrigger';
 import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
 import ResultSet from '../ResultSet';
 import HighlightedSql from '../HighlightedSql';
-import { StaticPosition, StyledTooltip } from './styles';
+import { StaticPosition, verticalAlign, StyledTooltip } from './styles';
 
 interface QueryTableQuery
   extends Omit<
@@ -109,7 +107,6 @@ const QueryTable = ({
             column as keyof typeof QUERY_HISTORY_TABLE_HEADERS_LOCALIZED
           ] || setHeaders(column),
         disableSortBy: true,
-        id: column,
       })),
     [columns],
   );
@@ -135,7 +132,10 @@ const QueryTable = ({
       success: {
         config: {
           icon: (
-            <Icons.CheckOutlined iconColor={theme.colorSuccess} iconSize="m" />
+            <Icons.CheckOutlined
+              iconColor={theme.colors.success.base}
+              iconSize="m"
+            />
           ),
           // icon: <Icons.Edit iconSize="xl" />,
           label: t('Success'),
@@ -144,7 +144,10 @@ const QueryTable = ({
       failed: {
         config: {
           icon: (
-            <Icons.CloseOutlined iconColor={theme.colorError} iconSize="m" />
+            <Icons.CloseOutlined
+              iconColor={theme.colors.error.base}
+              iconSize="m"
+            />
           ),
           label: t('Failed'),
         },
@@ -152,7 +155,10 @@ const QueryTable = ({
       stopped: {
         config: {
           icon: (
-            <Icons.CloseOutlined iconColor={theme.colorError} iconSize="m" />
+            <Icons.CloseOutlined
+              iconColor={theme.colors.error.base}
+              iconSize="m"
+            />
           ),
           label: t('Failed'),
         },
@@ -161,7 +167,7 @@ const QueryTable = ({
         config: {
           icon: (
             <Icons.LoadingOutlined
-              iconColor={theme.colorPrimary}
+              iconColor={theme.colors.primary.base}
               iconSize="m"
             />
           ),
@@ -172,7 +178,7 @@ const QueryTable = ({
         config: {
           icon: (
             <Icons.LoadingOutlined
-              iconColor={theme.colorPrimary}
+              iconColor={theme.colors.primary.base}
               iconSize="m"
             />
           ),
@@ -182,10 +188,7 @@ const QueryTable = ({
       timed_out: {
         config: {
           icon: (
-            <Icons.ClockCircleOutlined
-              iconColor={theme.colorError}
-              iconSize="m"
-            />
+            <Icons.Clock iconColor={theme.colors.error.base} iconSize="m" />
           ),
           label: t('Offline'),
         },
@@ -194,7 +197,7 @@ const QueryTable = ({
         config: {
           icon: (
             <Icons.LoadingOutlined
-              iconColor={theme.colorWarning}
+              iconColor={theme.colors.warning.base}
               iconSize="m"
             />
           ),
@@ -205,7 +208,7 @@ const QueryTable = ({
         config: {
           icon: (
             <Icons.LoadingOutlined
-              iconColor={theme.colorWarning}
+              iconColor={theme.colors.warning.base}
               iconSize="m"
             />
           ),
@@ -214,7 +217,9 @@ const QueryTable = ({
       },
       error: {
         config: {
-          icon: <Icons.Error iconColor={theme.colorError} iconSize="m" />,
+          icon: (
+            <Icons.Error iconColor={theme.colors.error.base} iconSize="m" />
+          ),
           label: t('Unknown Status'),
         },
       },
@@ -222,7 +227,7 @@ const QueryTable = ({
         config: {
           icon: (
             <Icons.LoadingOutlined
-              iconColor={theme.colorPrimary}
+              iconColor={theme.colors.primary.base}
               iconSize="m"
             />
           ),
@@ -272,7 +277,7 @@ const QueryTable = ({
             buttonStyle="link"
             onClick={() => openQuery(q.queryId)}
           >
-            <Icons.Full iconSize="m" iconColor={theme.colorPrimary} />
+            <i className="fa fa-external-link m-r-3" />
             {t('Edit')}
           </Button>
         );
@@ -291,7 +296,7 @@ const QueryTable = ({
             <ModalTrigger
               className="ResultsModal"
               triggerNode={
-                <Button buttonSize="xsmall" buttonStyle="secondary">
+                <Button buttonSize="xsmall" buttonStyle="tertiary">
                   {t('View')}
                 </Button>
               }
@@ -302,6 +307,7 @@ const QueryTable = ({
                 <ResultSet
                   showSql
                   queryId={query.id}
+                  height={400}
                   displayLimit={displayLimit}
                   defaultQueryLimit={1000}
                 />
@@ -336,7 +342,7 @@ const QueryTable = ({
               placement="top"
               className="pointer"
             >
-              <Icons.EditOutlined iconSize="l" />
+              <Icons.Edit iconSize="xl" />
             </StyledTooltip>
             <StyledTooltip
               onClick={() => openQueryInNewTab(query)}
@@ -344,7 +350,7 @@ const QueryTable = ({
               placement="top"
               className="pointer"
             >
-              <Icons.PlusCircleOutlined iconSize="l" />
+              <Icons.PlusCircleOutlined iconSize="xl" css={verticalAlign} />
             </StyledTooltip>
             {q.id !== latestQueryId && (
               <StyledTooltip
@@ -352,7 +358,7 @@ const QueryTable = ({
                 onClick={() => dispatch(removeQuery(query))}
                 className="pointer"
               >
-                <Icons.DeleteOutlined iconSize="l" />
+                <Icons.Trash iconSize="xl" />
               </StyledTooltip>
             )}
           </div>

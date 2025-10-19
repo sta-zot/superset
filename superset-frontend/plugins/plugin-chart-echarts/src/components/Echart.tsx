@@ -27,9 +27,10 @@ import {
   Ref,
   useState,
 } from 'react';
+
 import { useSelector } from 'react-redux';
 
-import { styled, useTheme, mergeReplaceArrays } from '@superset-ui/core';
+import { styled } from '@superset-ui/core';
 import { use, init, EChartsType, registerLocale } from 'echarts/core';
 import {
   SankeyChart,
@@ -46,12 +47,10 @@ import {
   TreemapChart,
   HeatmapChart,
   SunburstChart,
-  CustomChart,
 } from 'echarts/charts';
 import { CanvasRenderer } from 'echarts/renderers';
 import {
   TooltipComponent,
-  TitleComponent,
   GridComponent,
   VisualMapComponent,
   LegendComponent,
@@ -83,7 +82,6 @@ use([
   CanvasRenderer,
   BarChart,
   BoxplotChart,
-  CustomChart,
   FunnelChart,
   GaugeChart,
   GraphChart,
@@ -105,7 +103,6 @@ use([
   LegendComponent,
   ToolboxComponent,
   TooltipComponent,
-  TitleComponent,
   VisualMapComponent,
   LabelLayout,
 ]);
@@ -129,11 +126,9 @@ function Echart(
     zrEventHandlers,
     selectedValues = {},
     refs,
-    vizType,
   }: EchartsProps,
   ref: Ref<EchartsHandler>,
 ) {
-  const theme = useTheme();
   const divRef = useRef<HTMLDivElement>(null);
   if (refs) {
     // eslint-disable-next-line no-param-reassign
@@ -191,67 +186,9 @@ function Echart(
         chartRef.current?.getZr().on(name, handler);
       });
 
-      const getEchartsTheme = (options: any) => {
-        const antdTheme = theme;
-        const echartsTheme = {
-          textStyle: {
-            color: antdTheme.colorText,
-            fontFamily: antdTheme.fontFamily,
-          },
-          title: {
-            textStyle: { color: antdTheme.colorText },
-          },
-          legend: {
-            textStyle: { color: antdTheme.colorTextSecondary },
-            pageTextStyle: {
-              color: antdTheme.colorTextSecondary,
-            },
-            pageIconColor: antdTheme.colorTextSecondary,
-            pageIconInactiveColor: antdTheme.colorTextDisabled,
-            inactiveColor: antdTheme.colorTextDisabled,
-          },
-          tooltip: {
-            backgroundColor: antdTheme.colorBgContainer,
-            textStyle: { color: antdTheme.colorText },
-          },
-          axisPointer: {
-            lineStyle: { color: antdTheme.colorPrimary },
-            label: { color: antdTheme.colorText },
-          },
-        } as any;
-        if (options?.xAxis) {
-          echartsTheme.xAxis = {
-            axisLine: { lineStyle: { color: antdTheme.colorSplit } },
-            axisLabel: { color: antdTheme.colorTextSecondary },
-            splitLine: { lineStyle: { color: antdTheme.colorSplit } },
-          };
-        }
-        if (options?.yAxis) {
-          echartsTheme.yAxis = {
-            axisLine: { lineStyle: { color: antdTheme.colorSplit } },
-            axisLabel: { color: antdTheme.colorTextSecondary },
-            splitLine: { lineStyle: { color: antdTheme.colorSplit } },
-          };
-        }
-        return echartsTheme;
-      };
-
-      const baseTheme = getEchartsTheme(echartOptions);
-      const globalOverrides = theme.echartsOptionsOverrides || {};
-      const chartOverrides = vizType
-        ? theme.echartsOptionsOverridesByChartType?.[vizType] || {}
-        : {};
-
-      const themedEchartOptions = mergeReplaceArrays(
-        baseTheme,
-        echartOptions,
-        globalOverrides,
-        chartOverrides,
-      );
-
-      chartRef.current?.setOption(themedEchartOptions, true);
+      chartRef.current?.setOption(echartOptions, true);
     }
-  }, [didMount, echartOptions, eventHandlers, zrEventHandlers, theme]);
+  }, [didMount, echartOptions, eventHandlers, zrEventHandlers]);
 
   useEffect(() => () => chartRef.current?.dispose(), []);
 

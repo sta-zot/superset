@@ -17,11 +17,11 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import { extendedDayjs } from '@superset-ui/core/utils/dates';
+import { extendedDayjs } from 'src/utils/dates';
 import { styled, t } from '@superset-ui/core';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { Link } from 'react-router-dom';
-import { ListViewCard } from '@superset-ui/core/components';
+import ListViewCard from 'src/components/ListViewCard';
 import { Dashboard, SavedQueryObject, TableTab } from 'src/views/CRUD/types';
 import { ActivityData, LoadingCards } from 'src/pages/Home';
 import {
@@ -30,7 +30,7 @@ import {
   getEditedObjects,
 } from 'src/views/CRUD/utils';
 import { Chart } from 'src/types/Chart';
-import { Icons } from '@superset-ui/core/components/Icons';
+import Icons from 'src/components/Icons';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable, RecentActivity } from './types';
@@ -66,7 +66,7 @@ interface ActivityProps {
 const Styles = styled.div`
   .recentCards {
     max-height: none;
-    grid-gap: ${({ theme }) => `${theme.sizeUnit * 4}px`};
+    grid-gap: ${({ theme }) => `${theme.gridUnit * 4}px`};
   }
 `;
 
@@ -81,13 +81,13 @@ const getEntityTitle = (entity: ActivityObject) => {
 };
 
 const getEntityIcon = (entity: ActivityObject) => {
-  if ('sql' in entity) return <Icons.ConsoleSqlOutlined />;
+  if ('sql' in entity) return <Icons.Sql />;
   const url = 'item_url' in entity ? entity.item_url : entity.url;
   if (url?.includes('dashboard')) {
-    return <Icons.DashboardOutlined />;
+    return <Icons.NavDashboard />;
   }
   if (url?.includes('explore')) {
-    return <Icons.BarChartOutlined />;
+    return <Icons.NavCharts />;
   }
   return null;
 };
@@ -104,9 +104,6 @@ const getEntityLastActionOn = (entity: ActivityObject) => {
   }
 
   let time: number | string | undefined | null;
-  if (entity.changed_on_delta_humanized != null) {
-    return t('Modified %s', entity.changed_on_delta_humanized);
-  }
   if ('changed_on' in entity) time = entity.changed_on;
   if ('changed_on_utc' in entity) time = entity.changed_on_utc;
   return t(
@@ -198,11 +195,7 @@ export default function ActivityTable({
   }
   return (
     <Styles>
-      <SubMenu
-        activeChild={activeChild}
-        tabs={tabs}
-        backgroundColor="transparent"
-      />
+      <SubMenu activeChild={activeChild} tabs={tabs} />
       {Number(activityData[activeChild as keyof ActivityData]?.length) > 0 ||
       (activeChild === TableTab.Edited && editedCards?.length) ? (
         <CardContainer className="recentCards">

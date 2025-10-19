@@ -19,7 +19,8 @@
 
 import * as reactRedux from 'react-redux';
 import { Filter, NativeFilterType } from '@superset-ui/core';
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
+import { render, screen } from 'spec/helpers/testing-library';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { SET_DIRECT_PATH } from 'src/dashboard/actions/dashboardState';
 import { FilterCardContent } from './FilterCardContent';
@@ -230,7 +231,7 @@ const renderContent = (filter = baseFilter, initialState = baseInitialState) =>
 test('filter card title, type, scope, dependencies', () => {
   renderContent();
   expect(screen.getByText('Native filter 1')).toBeVisible();
-  expect(screen.getByLabelText('filter')).toBeVisible();
+  expect(screen.getByLabelText('filter-small')).toBeVisible();
 
   expect(screen.getByText('Filter type')).toBeVisible();
   expect(screen.getByText('Select filter')).toBeVisible();

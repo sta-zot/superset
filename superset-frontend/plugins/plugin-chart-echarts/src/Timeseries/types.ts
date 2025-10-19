@@ -74,7 +74,6 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   rowLimit: number;
   seriesType: EchartsTimeseriesSeriesType;
   stack: StackType;
-  stackDimension: string;
   timeCompare?: string[];
   tooltipTimeFormat?: string;
   showTooltipTotal?: boolean;
@@ -85,13 +84,11 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   xAxisForceCategorical?: boolean;
   xAxisTimeFormat?: string;
   timeGrainSqla?: TimeGranularity;
-  forceMaxInterval?: boolean;
   xAxisBounds: [number | undefined | null, number | undefined | null];
   yAxisBounds: [number | undefined | null, number | undefined | null];
   zoomable: boolean;
   richTooltip: boolean;
   xAxisLabelRotation: number;
-  xAxisLabelInterval: number | string;
   showValue: boolean;
   onlyTotal: boolean;
   showExtraControls: boolean;

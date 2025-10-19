@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { TreeProps } from '@superset-ui/core/components/Tree';
+import { TreeProps } from 'antd/lib/tree';
 import { DropInfoType, FlatLayerDataNode } from './types';
 
 /**

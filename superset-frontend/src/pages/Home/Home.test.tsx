@@ -17,15 +17,11 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-} from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import { isFeatureEnabled, getExtensionsRegistry } from '@superset-ui/core';
+import userEvent from '@testing-library/user-event';
 import Welcome from 'src/pages/Home';
-import setupCodeOverrides from 'src/setup/setupCodeOverrides';
+import setupExtensions from 'src/setup/setupExtensions';
 
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
 const chartInfoEndpoint = 'glob:*/api/v1/chart/_info?*';
@@ -177,7 +173,7 @@ test('With sql role - renders all panels on the page on page load', async () => 
 
 test('With sql role - renders distinct recent activities', async () => {
   await renderWelcome();
-  const recentPanel = screen.getByRole('button', { name: 'collapsed Recents' });
+  const recentPanel = screen.getByRole('button', { name: 'right Recents' });
   userEvent.click(recentPanel);
   await waitFor(() =>
     expect(
@@ -243,15 +239,9 @@ test('With toggle switch - does not show thumbnails when switch is off', async (
   mockedIsFeatureEnabled.mockReturnValue(true);
 
   await renderWelcome();
-  const toggle = await screen.findByRole('switch', {}, { timeout: 10000 });
-
-  await waitFor(
-    () => {
-      userEvent.click(toggle);
-      expect(screen.queryByAltText('Thumbnails')).not.toBeInTheDocument();
-    },
-    { timeout: 10000 },
-  );
+  const toggle = await screen.findByRole('switch');
+  userEvent.click(toggle);
+  expect(screen.queryByAltText('Thumbnails')).not.toBeInTheDocument();
 });
 
 test('Should render an extension component if one is supplied', async () => {
@@ -261,7 +251,7 @@ test('Should render an extension component if one is supplied', async () => {
     <>welcome.banner extension component</>
   ));
 
-  setupCodeOverrides();
+  setupExtensions();
 
   await renderWelcome();
 
@@ -275,7 +265,7 @@ test('Should render a submenu extension component if one is supplied', async () 
 
   extensionsRegistry.set('home.submenu', () => <>submenu extension</>);
 
-  setupCodeOverrides();
+  setupExtensions();
 
   await renderWelcome();
 
@@ -293,7 +283,7 @@ test('Should not make data fetch calls if `welcome.main.replacement` is defined'
     <>welcome.main.replacement extension component</>
   ));
 
-  setupCodeOverrides();
+  setupExtensions();
 
   await renderWelcome();
 

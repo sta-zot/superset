@@ -18,8 +18,7 @@
  */
 import { ControlHeader } from '@superset-ui/chart-controls';
 import { css, styled, t } from '@superset-ui/core';
-import { Form } from '@superset-ui/core/components';
-import { Tag } from 'src/components';
+import { Form, Tag } from 'antd';
 import { FC, useState } from 'react';
 import { isZoomConfigsLinear, isZoomConfigsExp } from './typeguards';
 import { ZoomConfigs, ZoomConfigsControlProps } from './types';

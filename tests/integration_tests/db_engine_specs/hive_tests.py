@@ -17,6 +17,7 @@
 # isort:skip_file
 from unittest import mock
 import unittest
+from .base_tests import SupersetTestCase
 
 import pytest
 import pandas as pd
@@ -24,8 +25,7 @@ from sqlalchemy.sql import select
 
 from superset.db_engine_specs.hive import HiveEngineSpec, upload_to_s3
 from superset.exceptions import SupersetException
-from superset.sql.parse import Table
-from tests.integration_tests.base_tests import SupersetTestCase
+from superset.sql_parse import Table
 from tests.integration_tests.test_app import app
 
 

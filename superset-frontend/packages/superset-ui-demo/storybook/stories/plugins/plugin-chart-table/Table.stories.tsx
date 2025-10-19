@@ -136,7 +136,7 @@ function loadData(
   };
 }
 
-export const Basic = ({ width, height }: { width: number; height: number }) => (
+export const Basic = ({ width, height }) => (
   <SuperChart
     chartType={VizType.Table}
     datasource={{

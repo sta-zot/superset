@@ -41,8 +41,6 @@ import {
   truncateXAxis,
   xAxisBounds,
   xAxisLabelRotation,
-  xAxisLabelInterval,
-  forceMaxInterval,
 } from '../../../controls';
 
 const {
@@ -56,6 +54,7 @@ const {
   seriesType,
   truncateYAxis,
   yAxisBounds,
+  zoomable,
 } = DEFAULT_FORM_DATA;
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -158,7 +157,18 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['zoomable'],
+        [
+          {
+            name: 'zoomable',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Data Zoom'),
+              default: zoomable,
+              renderTrigger: true,
+              description: t('Enable data zooming controls'),
+            },
+          },
+        ],
         [minorTicks],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
@@ -173,8 +183,6 @@ const config: ControlPanelConfig = {
           },
         ],
         [xAxisLabelRotation],
-        [xAxisLabelInterval],
-        [forceMaxInterval],
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
         [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],

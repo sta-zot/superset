@@ -29,7 +29,7 @@ export default {
   decorators: [withResizableChartDemo],
 };
 
-export const basic = ({ width, height }: { width: number; height: number }) => (
+export const basic = ({ width, height }) => (
   <SuperChart
     chartType={VizType.Chord}
     width={width}

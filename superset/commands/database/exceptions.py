@@ -88,19 +88,9 @@ class DatabaseExtraValidationError(ValidationError):
         )
 
 
-class DatabaseConnectionSyncPermissionsError(CommandException):
-    status = 500
-    message = _("Unable to sync permissions for this database connection.")
-
-
 class DatabaseNotFoundError(CommandException):
     status = 404
     message = _("Database not found.")
-
-
-class UserNotFoundInSessionError(CommandException):
-    status = 500
-    message = _("Could not validate the user in the current session.")
 
 
 class DatabaseSchemaUploadNotAllowed(CommandException):
@@ -136,15 +126,6 @@ class DatabaseConnectionFailedError(  # pylint: disable=too-many-ancestors
     DatabaseUpdateFailedError,
 ):
     message = _("Connection failed, please check your connection settings")
-
-
-class MissingOAuth2TokenError(DatabaseUpdateFailedError):
-    """
-    Exception for when the connection is missing an OAuth2 token
-    and it's not possible to initiate an OAuth2 dance.
-    """
-
-    message = _("Missing OAuth2 token")
 
 
 class DatabaseDeleteDatasetsExistFailedError(DeleteFailedError):

@@ -41,9 +41,8 @@ import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
-import { ensureAppRoot } from 'src/utils/pathUtils';
 import { safeStringify } from 'src/utils/safeStringify';
-import { extendedDayjs } from '@superset-ui/core/utils/dates';
+import { extendedDayjs } from 'src/utils/dates';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -164,7 +163,7 @@ const v1ChartDataRequest = async (
   ownState,
   parseMethod,
 ) => {
-  const payload = await buildV1ChartDataPayload({
+  const payload = buildV1ChartDataPayload({
     formData,
     resultType,
     resultFormat,
@@ -255,7 +254,7 @@ export function runAnnotationQuery({
   isDashboardRequest = false,
   force = false,
 }) {
-  return async function (dispatch, getState) {
+  return function (dispatch, getState) {
     const { charts, common } = getState();
     const sliceKey = key || Object.keys(charts)[0];
     const queryTimeout = timeout || common.conf.SUPERSET_WEBSERVER_TIMEOUT;
@@ -310,19 +309,17 @@ export function runAnnotationQuery({
       fd.annotation_layers[annotationIndex].overrides = sliceFormData;
     }
 
-    const payload = await buildV1ChartDataPayload({
-      formData: fd,
-      force,
-      resultFormat: 'json',
-      resultType: 'full',
-    });
-
     return SupersetClient.post({
       url,
       signal,
       timeout: queryTimeout * 1000,
       headers: { 'Content-Type': 'application/json' },
-      jsonPayload: payload,
+      jsonPayload: buildV1ChartDataPayload({
+        formData: fd,
+        force,
+        resultFormat: 'json',
+        resultType: 'full',
+      }),
     })
       .then(({ json }) => {
         const data = json?.result?.[0]?.annotation_data?.[annotation.name];
@@ -422,8 +419,6 @@ export function exploreJSON(
     const setDataMask = dataMask => {
       dispatch(updateDataMask(formData.slice_id, dataMask));
     };
-    dispatch(chartUpdateStarted(controller, formData, key));
-
     const chartDataRequest = getChartDataRequest({
       setDataMask,
       formData,
@@ -434,6 +429,8 @@ export function exploreJSON(
       requestParams,
       ownState,
     });
+
+    dispatch(chartUpdateStarted(controller, formData, key));
 
     const [useLegacyApi] = getQuerySettings(formData);
     const chartDataRequestCaught = chartDataRequest
@@ -539,11 +536,7 @@ export function postChartFormData(
 
 export function redirectSQLLab(formData, history) {
   return dispatch => {
-    getChartDataRequest({
-      formData,
-      resultFormat: 'json',
-      resultType: 'query',
-    })
+    getChartDataRequest({ formData, resultFormat: 'json', resultType: 'query' })
       .then(({ json }) => {
         const redirectUrl = '/sqllab/';
         const payload = {
@@ -558,7 +551,7 @@ export function redirectSQLLab(formData, history) {
             },
           });
         } else {
-          SupersetClient.postForm(ensureAppRoot(redirectUrl), {
+          SupersetClient.postForm(redirectUrl, {
             form_data: safeStringify(payload),
           });
         }
@@ -601,7 +594,6 @@ export const getDatasourceSamples = async (
   jsonPayload,
   perPage,
   page,
-  dashboardId,
 ) => {
   try {
     const searchParams = {
@@ -609,10 +601,6 @@ export const getDatasourceSamples = async (
       datasource_type: datasourceType,
       datasource_id: datasourceId,
     };
-
-    if (isDefined(dashboardId)) {
-      searchParams.dashboard_id = dashboardId;
-    }
 
     if (isDefined(perPage) && isDefined(page)) {
       searchParams.per_page = perPage;

@@ -37,8 +37,6 @@ from superset.utils.core import (
 revision = "4736ec66ce19"
 down_revision = "f959a6652acd"
 
-logger = logging.getLogger("alembic.env")
-
 conv = {
     "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
     "uq": "uq_%(table_name)s_%(column_0_name)s",
@@ -121,13 +119,13 @@ def upgrade():
                 type_="unique",
             )
     except Exception as ex:
-        logger.warning(
+        logging.warning(
             "Constraint drop failed, you may want to do this "
             "manually on your database. For context, this is a known "
             "issue around nondeterministic constraint names on Postgres "
             "and perhaps more databases through SQLAlchemy."
         )
-        logger.exception(ex)
+        logging.exception(ex)
 
 
 def downgrade():
