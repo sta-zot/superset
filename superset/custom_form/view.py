@@ -1,7 +1,7 @@
-`from flask import Flask, render_template, request, redirect, url_for, flash
-from flask_appbuilder import SimpleFormView, expose, BaseView
+# from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_appbuilder import expose, BaseView
 from superset.superset_typing import FlaskResponse
-from superset.views.base import BaseSupersetView
+# from superset.views.base import BaseSupersetView
 
 from .forms import ReportUploadForm
 from .model import LocationsModel
@@ -13,7 +13,7 @@ logger.setLevel(logging.DEBUG)
 logger.error("Custom view module loaded")
 
 
-class ReportUploadView(BaseSupersetView):
+class ReportUploadView(BaseView):
     form = None
     choices = [
             ('1', 'Мероприятия по ПФГ для экономически активного населения и пенсионеров'),
