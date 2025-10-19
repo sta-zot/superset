@@ -319,12 +319,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #-------------Add link for custom view------------#
         appbuilder.add_link(
             "Загрузка отчёта",
-            label=_("Загрузка отчёта"),
+            label=__("Загрузка отчёта"),
             href="/upload_report/",
             category_icon="fa-newspaper-o",
             icon='fa-cloud-upload',
             category='report_mgmt',
-            category_label=_('Управление отчётами'),
+            category_label=__('Управление отчётами'),
         )
         #--------------------------------------------------#
         
