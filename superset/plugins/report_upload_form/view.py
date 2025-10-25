@@ -6,6 +6,7 @@
 
 # from flask import Flask, render_template, request, redirect, url_for, flash
 import os
+from datetime import datetime
 from flask_appbuilder import expose, BaseView
 from flask import (
     request,
@@ -130,11 +131,14 @@ class ReportUploadView(BaseView):
                 {
                     "author": g.user,
                     "region": region,
-                    "activity": self.activities[activity],
+                    "activity": {
+                        "id": activity.title(),
+                        "title": self.activities[activity.title()]
+                        },
+                    "created_at": datetime.now().timestamp(),
                     "comment": comment,
                     "prefix": activity.title(),
                     "filename": file.filename,
-                    "link": s3.get_link(file.filename, prefix=activity.title())
                 }
             )
         except Exception as e:
