@@ -109,11 +109,11 @@ class ReportUploadView(BaseView):
             endpoint_url=app.config["S3_ENDPOINT_URL"]
         )
         ds = DocumentStorage(
-            host=app.config["MONGO_HOST"],
-            port=app.config["MONGO_PORT"],
-            username=app.config["MONGO_USER"],
-            password=app.config["MONGO_PASSWORD"],
-            database=app.config["MONGO_DB"]
+            host=app.config["DS_HOST"],
+            port=app.config["DS_PORT"],
+            username=app.config["DS_USER"],
+            password=app.config["DS_PASSWD"],
+            database=app.config["DS_DB"]
         )
 
         try:

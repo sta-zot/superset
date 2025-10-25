@@ -72,6 +72,20 @@ CACHE_CONFIG = {
 }
 DATA_CACHE_CONFIG = CACHE_CONFIG
 
+# Plugin config
+# MinIO S3 storage configuration 
+S3_ACCESS_KEY = os.getenv("S3_ACCESS_KEY")
+S3_SECRET_KEY = os.getenv("S3_SECRET_KEY")
+S3_BUCKET = os.getenv("S3_BUCKET")
+S3_ENDPOINT_URL = os.getenv("S3_ENDPOINT_URL")
+
+# MongoDB documents storage configuration
+DS_HOST = os.getenv("DS_HOST")
+DS_PORT = os.getenv("DS_PORT")
+DS_DB = os.getenv("DS_DB")
+DS_USER = os.getenv("DS_USER")
+DS_PASSWD = os.getenv("DS_PASSWD")
+
 
 class CeleryConfig:
     broker_url = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
