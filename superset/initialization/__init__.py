@@ -184,10 +184,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.sqllab import SqllabView
         from superset.views.tags import TagModelView, TagView
         from superset.views.users.api import CurrentUserRestApi, UserRestApi
-        
-        #-------------Add custom plugin--------------#
-        from superset.plugins import ReportUploadView
-        #--------------------------------------------#
+
         set_app_error_handlers(self.superset_app)
 
         #
@@ -293,9 +290,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #
         # Setup views with no menu
         #
-        #----------=Add custom form view=----------#
-        appbuilder.add_view_no_menu(ReportUploadView)
-        #------------------------------------------#
         appbuilder.add_view_no_menu(Api)
         appbuilder.add_view_no_menu(Dashboard)
         appbuilder.add_view_no_menu(Datasource)
@@ -316,19 +310,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #
         # Add links
         #
-        #-------------Add link for custom view------------#
-        appbuilder.add_link(
-            "Загрузка отчёта",
-            label=__("Загрузка отчёта"),
-            href="/upload_report/",
-            category_icon="fa-newspaper-o",
-            icon='fa-cloud-upload',
-            category='report_mgmt',
-            category_label=__('Управление отчётами'),
-        )
-        #--------------------------------------------------#
-        
-        
         appbuilder.add_link(
             "SQL Editor",
             label=__("SQL Lab"),
