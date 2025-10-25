@@ -1,13 +1,10 @@
 """
 В этом модуле определяются модели для работы с базами данных для пользовательских форм.
 """
-#import json
 import logging
-
 import pandas as pd
-
 import boto3
-from typing import List, Any
+from typing import List, Any, BinaryIO
 from werkzeug.datastructures import FileStorage
 
 
@@ -46,14 +43,13 @@ class LocationsModel():
         return self.locales
 
 
-
-class ObjectStor():
+class ObjectStorage():
     def __init__(
             self,
-            s3_access_key: str |None = None,
-            s3_secret_key: str | None  = None,
-            endpoint_url: str | None  = None,
-            bucket_name: str | None  = None,
+            s3_access_key: str,
+            s3_secret_key: str,
+            endpoint_url: str,
+            bucket_name: str,
     ):
         """
         Инициализация клиента для работы с объектным хранилищем S3
@@ -77,15 +73,96 @@ class ObjectStor():
         if not all([s3_access_key, s3_secret_key, endpoint_url, bucket_name]):
             raise ValueError("All parameters must be provided for S3 initialization.")
         
-        self.s3_client = boto3.client(
+        self.client = boto3.client(
             's3',
-            s3_access_key=s3_access_key,
-            s3_secret_key=s3_secret_key,
+            aws_access_key_id=s3_access_key,
+            aws_secret_access_key=s3_secret_key,
             endpoint_url=endpoint_url,
-            bucket=bucket_name,
+            region_name='us-east-1',
         )
         self.bucket_name = bucket_name
-    
+        if not self.__has_bucket():
+            self.create_bucket()
+
+    def create_bucket(self) -> None:
+        self.client.create_bucket(Bucket=self.bucket_name)
+
+    def __has_bucket(self) -> bool:
+        try:
+            self.client.head_bucket(Bucket=self.bucket_name)
+            return True
+        except self.client.exceptions.NoSuchBucket:
+            return False
+
+    def add(
+            self,
+            file: FileStorage | list[FileStorage],
+            prefix: str = "",
+            *args,
+            **kwargs
+    ) -> None:
+        """
+        Upload file to S3 bucket.
+        :param file: FileStorage object or list of FileStorage objects
+        :param prefix: prefix for file name
+        :param args: additional arguments, not used
+        :param kwargs: additional keyword arguments, used for add metadata during file upload
+        :return: None
+        :exception ValueError: if file is not FileStorage object or list of FileStorage objects
+        """
+
+        if isinstance(file, list):
+            for f in file:
+                key = f'{prefix}/{file.filename}' if prefix else file.filename
+                self.client.upload_fileobj(
+                    f,
+                    self.bucket_name,
+                    key,
+                    #ExtraArgs={"Metadata": kwargs} if kwargs else None, не заморачиваемся с метаданными пока
+                    # minio не поддерживает кодировку метаданных в utf-8
+                )
+        else:
+            key = f'{prefix}/{file.filename}' if prefix else file.filename
+            self.client.upload_fileobj(
+                file,
+                self.bucket_name,
+                key,
+                #ExtraArgs={"Metadata": kwargs} if kwargs else None, не заморачиваемся с метаданными пока
+                # minio не поддерживает кодировку метаданных в utf-8
+            )
+
+    def get(self, file_name: str) -> BinaryIO:
+        """
+        Возвращает объект совместимый с объектом file в виде потока байт
+        Args:
+            file_name (str): имя файла для скачивания
+
+        Returns:
+            BinaryIO: Объект типа StreamingBody имеющий интерфейс как у объекта file
+        """
+        response = self.client.get_object(
+            bucket=self.bucket_name,
+            Key=file_name)
+        return response['Body']
+
+    def list(self, prefix: str = "") -> list:
+        """Возвращает список файлов 
+        Args:
+            prefix: Уловная директория из которой 
+            надо получить список файлов. По умолчанию 
+            пустая строка
+        Returns:
+            list: Список имён файлов
+        """
+        response = self.client.list_objects_v2(
+            Bucket=self.bucket_name,
+            prefix=prefix
+        )
+
+        if 'Contents' in response:
+            return [item['Key'] for item in response['Contents']]
+        return []
+
     def list_buckets(self):
         """
         Получение списка бакетов S3.
@@ -102,89 +179,82 @@ class ObjectStor():
         >>> print(buckets)
         """
         try:
-            response = self.s3_client.list_buckets()
+            response = self.client.list_buckets()
             return response['Buckets']
         except Exception as e:
-            raise Exception(f"Error listing buckets: {e}")
-        response = self.s3_client.list_buckets()
-    
+            raise Exception(f"Error listing buckets: {e}") from e
 
-    def load(self, file_name: str| list[str] , prefix: str = ""):
-        """
-        Загрузка файла(ов) из S3.
-        :param file_name: Имя файла или список имен файлов для загрузки.
-        :param prefix: Префикс пути в бакете S3.
-        :return: Словарь или список словарей с данными файлов.
-        >>> {
-        >>>     'Body': <botocore.response.StreamingBody>,
-        >>>     'ContentLength': 125,
-        >>>     'ContentType': 'application/json',
-        >>>     'ETag': '"abc1234..."',
-        >>>     'LastModified': datetime.datetime(2025, 10, 23, 8, 40, tzinfo=tzutc()),
-        >>>     'Metadata': {
-        >>>         'author': 'Stan',
-        >>>         'version': '1'
-        >>>     }
-        >>> }
-        :raises Exception: Если произошла ошибка при загрузке файла(ов).
-        """
-        if isinstance(file_name, list):
-            keys = [f"{prefix}/{fn}" if prefix else fn for fn in file_name]
-            responses = {}
-            for key in keys:
-                responses[key] = self.s3_client.get_object(Bucket=self.bucket_name, Key=key)
-            return responses
+
+class DocumentStorage():
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        username: str,
+        password: str,
+        database: str
+    ) -> None:
+        if not all([host, port, username, password, database]):
+            raise ValueError("All parameters must be provided")
+        self.db_client = pymongo.MongoClient(
+            host=host,
+            port=port,
+            username=username,
+            password=password
+        )
+        #Проводить проверку на наличие БД не нужно, если её нет то она создастся
+        self.db = self.db_client[database]
+        self.db_collection = self.db["reports"]
+
+    def add(
+        self,
+        data: dict,
+        collection: str = "",
+    ) -> None:
+        if not collection:
+            db_collection = self.db_collection
         else:
-            key = f"{prefix}/{file_name}" if prefix else file_name
-            response = self.s3_client.get_object(Bucket=self.bucket_name, Key=key)
-            return response
-        
-    def upload(
-            self,
-            file: FileStorage | list[FileStorage],
-            prefix: str = ""):
-        
-        """
-        Загрузка файла(ов) в S3.
-        :param file: Объект werkzeug.FileStorage или объект(ы) совметимые с классом io.Base.
-        :param prefix: Префикс пути в бакете S3.
-        :return: None
-        :raises Exception: Если произошла ошибка при загрузке файла(ов).
-        """
+            db_collection = self.db[collection]
 
-        if isinstance(file, list):
-            for f in file:
-                key = f"{prefix}/{f.filename}" if prefix else f.filename
-                self.s3_client.upload_fileobj(f, self.bucket_name, key)
+        db_collection.insert_one(data)
+
+    def add_many(
+        self,
+        data: dict,
+        collection: str = "",
+    ) -> None:
+
+        if not collection:
+            db_collection = self.db_collection
         else:
-            key = f"{prefix}/{file.filename}" if prefix else file.filename
-            self.s3_client.upload_fileobj(file, self.bucket_name, key)
-    
-    def list(self, prefix: str = "") -> List[str]:
-        """
-        Получение списка файлов в бакете S3 с указанным префиксом.
-        :param prefix: Префикс пути в бакете S3.
-        :return: Список имен файлов.
-        :raises Exception: Если произошла ошибка при получении списка файлов.
-        """
-        paginator = self.s3_client.get_paginator('list_objects_v2')
-        page_iterator = paginator.paginate(Bucket=self.bucket_name, Prefix=prefix)
+            db_collection = self.db[collection]
 
-        keys = []
-        for page in page_iterator:
-            if 'Contents' in page:
-                for obj in page['Contents']:
-                    keys.append(obj['Key'])
-        return keys
+        db_collection.insert_one(data)
 
+    def get(
+        self,
+        filter: dict,
+        collection: str = "",
+    ) -> dict:
+        if not collection:
+            db_collection = self.db_collection
+        else:
+            db_collection = self.db[collection]
+        return db_collection.find_one(filter)
 
+    def list(
+        self,
+        filter: dict = None,
+        collection: str = "",
+    ) -> list:
+        if not collection:
+            db_collection = self.db_collection
+        else:
+            db_collection = self.db[collection]
+        if filter:
+            return [item for item in db_collection.find(filter)]
+        return [item for item in db_collection.find()]
 
 
 if __name__ == "__main__":
-    test_df  = LocalesModel()
-    regions = test_df.get_regions()
-    regions_index = [i for i in range(len(regions))]
-    for region in regions:
-        print(f"Region: {region}\t ID: {regions.index(region)}")  
-
-
+    pass  

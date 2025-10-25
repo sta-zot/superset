@@ -42,6 +42,22 @@ EXAMPLES_HOST = os.getenv("EXAMPLES_HOST")
 EXAMPLES_PORT = os.getenv("EXAMPLES_PORT")
 EXAMPLES_DB = os.getenv("EXAMPLES_DB")
 
+# Plugin configuration
+# Document storage configuration
+DOCUMENT_STORAGE = os.getenv("DOCUMENT_STORAGE", "MONGODB")
+MONGO_HOST = os.getenv("MONGO_HOST", "mongodb")
+MONGO_PORT = os.getenv("MONGO_PORT", "27017")
+MONGO_DB = os.getenv("MONGO_DB", "reports_meta")
+MONGO_USER = os.getenv("MONGO_USER", "admin")
+MONGO_PASSWORD = os.getenv("MONGO_PASSWORD", "admin")
+MONGO_CONNECTION_STRING = f"mongodb://{MONGO_USER}:{MONGO_PASSWORD}@{MONGO_HOST}:{MONGO_PORT}/{MONGO_DB}"
+# Object storage configuration
+OBJECT_STORAGE = os.getenv("OBJECT_STORAGE", "MINIO")
+S3_ENDPOINT_URL = os.getenv("S3_ENDPOINT_URL", "minio:9000")
+S3_ACCESS_KEY = os.getenv("S3_ACCESS_KEY", "minioadmin")
+S3_SECRET_KEY = os.getenv("S3_SECRET_KEY", "minioadmin")
+S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "reports")
+
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = (
     f"{DATABASE_DIALECT}://"
