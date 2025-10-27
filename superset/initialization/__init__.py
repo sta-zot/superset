@@ -24,7 +24,15 @@ from typing import Any, Callable, TYPE_CHECKING
 
 import wtforms_json
 from deprecation import deprecated
-from flask import abort, Flask, redirect, request, session
+from flask import (
+    abort,
+    Flask,
+    redirect,
+    request,
+    session,
+    jsonify,
+    send_from_directory
+)
 from flask_appbuilder import expose, IndexView
 from flask_appbuilder.api import safe
 from flask_appbuilder.utils.base import get_safe_redirect
@@ -184,6 +192,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.sqllab import SqllabView
         from superset.views.tags import TagModelView, TagView
         from superset.views.users.api import CurrentUserRestApi, UserRestApi
+       
 
         set_app_error_handlers(self.superset_app)
 
@@ -286,7 +295,29 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_label=__("Manage"),
             category_icon="",
         )
-
+        #Custom view
+        from superset.plugins import ReportUploadView, STATIC_DIR
+        # Register custom route for static
+  
+        @self.superset_app.route('/upload_form/static/<path:filename>')
+        def report_upload_static(filename):
+            try:
+                return send_from_directory(STATIC_DIR, filename)
+            except Exception as e:
+                print(f"Static file error: {e}")
+                abort(404)  # или 500, но лучше 404
+                
+        # register custom view as standart view
+        appbuilder.add_view(
+            ReportUploadView,
+            "Load report",
+            label=__("Load report"),
+            icon="fa-upload",
+            category="Magage report",
+            category_label=__("Manage report"),
+            category_icon="fa-newspaper-o",
+        )
+        
         #
         # Setup views with no menu
         #
@@ -306,10 +337,24 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TaggedObjectsModelView)
         appbuilder.add_view_no_menu(TagView)
         appbuilder.add_view_no_menu(ReportView)
-
+        # Register Custom plugin
+        # appbuilder.add_view_no_menu(ReportUploadView)
         #
+        
+                
+        
         # Add links
         #
+        # # Add link for custom plugin
+        # appbuilder.add_link(
+        #     "Load report",
+        #     label=__("Load report"),
+        #     href="/upload_form/",
+        #     category_icon="fa-newspaper-o",
+        #     icon="fa-upload",
+        #     category="Magage report",
+        #     category_label=__("Manage report"),
+        # )
         appbuilder.add_link(
             "SQL Editor",
             label=__("SQL Lab"),
