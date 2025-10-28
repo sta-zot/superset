@@ -161,7 +161,7 @@ class ObjectStorageModel():
         except self.client.exceptions.NoSuchBucket:
             return False
         except Exception as e:
-            print("S3_STORAGE Error: {e}")
+            print(f"S3_STORAGE Error: {e}")
             return False
 
     def add(
