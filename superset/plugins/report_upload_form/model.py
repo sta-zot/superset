@@ -160,6 +160,9 @@ class ObjectStorageModel():
             return True
         except self.client.exceptions.NoSuchBucket:
             return False
+        except Exception as e:
+            print("S3_STORAGE Error: {e}")
+            return False
 
     def add(
             self,
@@ -180,7 +183,7 @@ class ObjectStorageModel():
 
         if isinstance(file, list):
             for f in file:
-                key = f'{prefix}/{file.filename}' if prefix else file.filename
+                key = f'{prefix}/{str(file.filename).lower()}' if prefix else str(file.filename).lower()
                 self.client.upload_fileobj(
                     f,
                     self.bucket_name,
@@ -189,7 +192,7 @@ class ObjectStorageModel():
                     # minio не поддерживает кодировку метаданных в utf-8
                 )
         else:
-            key = f'{prefix}/{file.filename}' if prefix else file.filename
+            key = f'{prefix}/{str(file.filename).lower()}' if prefix else str(file.filename).lower()
             self.client.upload_fileobj(
                 file,
                 self.bucket_name,

@@ -16,12 +16,14 @@ async function uploadFile() {
     const resultDiv = document.getElementById("result");
     const formData = new FormData(form);
     const csrfToken = form.querySelector('input[name="csrf_token"]').value;
-
+    messageDiv = document.createElement('div')
+    
      try {
         const response = await fetch("/upload_form/upload", {
             method: "POST",
             headers: { "X-CSRFToken": csrfToken },
             body: formData,
+            credentials: "include", 
         });
 
         let data;
@@ -38,9 +40,13 @@ async function uploadFile() {
         }
 
         if (data.status === "success") {
-            resultDiv.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+            messageDiv.className = 'alert alert-info';
+            messageDiv.textContent = data.message
+            resultDiv.appendChild(messageDiv)
         } else {
-            resultDiv.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+            messageDiv.className = 'alert alert-danger';
+            messageDiv.textContent = data.message
+            resultDiv.appendChild(messageDiv)
         }
 
     } catch (error) {
